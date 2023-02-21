@@ -9,15 +9,15 @@ int main()
 {
     float theta = 85;
     uint16_t L = 768;
-    uint16_t H = 384;
-    uint32_t reps = 8192 * 32 * 8 * 4;
+    uint16_t H = 512;
+    uint32_t reps = 8192 * 32 * 8 * 4 * 2;
     float phi = 0;
     float turns = 0;
     uint32_t seed = 3286398647;
-    uint16_t diffusion_steps = 10;
+    uint16_t diffusion_steps = 5;
     std::vector<int8_t> species = { 1 };
-    std::vector<float> spread = { 0, 0 };
-    std::vector<std::vector<float>> weights = { { {1, 0}, { 0, 1 }} };
+    std::vector<float> spread = { 0.000001, 0.000001 };
+    std::vector<std::vector<float>> weights = { { {1, .1}, { .1, 1 }} };
     uint32_t stepper_resolution = 0;
     SimulationParametersFull params;
     int16_t** outGrid = (int16_t**)malloc(sizeof(int16_t*));
@@ -25,10 +25,8 @@ int main()
     std::string system = "Si";
     int16_t* inputGrid = (int16_t*)malloc(sizeof(int16_t) * L * L * 4);
     uint32_t count = 0;
-    for (uint32_t i = 0; i < L; i++)
-    {
-        for (uint32_t j = 0; j < L; j++)
-        {
+    for (uint32_t i = 0; i < L; i++) {
+        for (uint32_t j = 0; j < L; j++) {
             inputGrid[count * 4] = i;
             inputGrid[count * 4 + 1] = j;
             inputGrid[count * 4 + 2] = 0;
@@ -38,10 +36,9 @@ int main()
     }
 
     uint32_t inputGridPoints = count;
-    for (int n = 0; n < 12; n++)
-    {
+    for (int n = 0; n < 1; n++) {
         std::cout << "Starting simulation " << n + 1 << "." << std::endl;
-        uint32_t points = obliqueDeposition(theta, L, H, reps, phi, turns * .85, seed, diffusion_steps, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, stepper_resolution, &params, system);
+        uint32_t points = obliqueDeposition(theta, L, H, reps, phi, turns * .85, seed, diffusion_steps, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, stepper_resolution, &params, system, true, false);
         params.clearLayers();
         phi += 15;
     }

@@ -438,7 +438,7 @@ uint16_t sparseToDense(int16_t* sparse, uint32_t num_points, int8_t* grid, uint1
 
 
 
-int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float phi, float turns, uint32_t seed, uint16_t diffusion_steps, std::vector<int8_t> * species, std::vector<float> * spread, std::vector<std::vector<float>> * weights, int16_t* inputGrid, uint32_t inputGridPoints, int16_t** outGrid, uint32_t stepper_resolution, SimulationParametersFull* params, std::string &system) {
+int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float phi, float turns, uint32_t seed, uint16_t diffusion_steps, std::vector<int8_t> * species, std::vector<float> * spread, std::vector<std::vector<float>> * weights, int16_t* inputGrid, uint32_t inputGridPoints, int16_t** outGrid, uint32_t stepper_resolution, SimulationParametersFull* params, std::string &system, bool phiSweep, bool thetaSweep) {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	// Magic numbers
@@ -483,6 +483,11 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	double phi_rad = phi * pi / 180.0;
 	double dphi_rad = dphi * pi / 180.0;
 	double phi_inc_rad = phi_rad;
+	double theta_inc_rad = theta_rad;
+	double stheta = 0;
+	double sphi = 0;
+	double psweep = 0;
+	double tsweep = 0;
 
 	// Create surface
 	Surface3D * surface = new Surface3D(L, H, L, grid, species, weights, seed);
@@ -498,6 +503,11 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	std::mt19937 gens(seed);
 	std::uniform_int_distribution<> sist(0, species->size());
 
+	std::mt19937 gensphi(seed);
+	std::normal_distribution<> dist_phi(0, (*spread)[0]*pi/180 / 2.57583); // 1% of particles are > abs of value passed
+	std::mt19937 genstheta(seed + 1);
+	std::normal_distribution<> dist_theta(0, (*spread)[1]*pi/180 / 2.57583); // 1% of particles are > abs of value passed
+
 	// Create path
 	int32_t src[3] = { (int16_t)(round(maxh / tan(theta_rad - pi / 2.0) * cos(phi_rad))), (int16_t)(round(maxh / tan(theta_rad - pi / 2.0) * sin(phi_rad))), maxh };
 	int32_t dest[3] = { 0,0,0 };
@@ -512,6 +522,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	std::cout << "Set-up took " << timep.count() / 1000 << " s." << std::endl;
 
 	start = std::chrono::high_resolution_clock::now();
+	int8_t sp = (*species)[0];
 	uint32_t deposited = 0;
 	uint32_t not_deposited = 0;
 	double timel = 0;
@@ -520,16 +531,49 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	for (uint32_t n = 0; n < reps; n++) {
 		auto startl = std::chrono::high_resolution_clock::now();
 
-		// Generate random destination and calculated source point
+		// Generate random destination
 		dest[0] = dist(gen);
 		dest[1] = dist(gen);
 		dest[2] = 0;
 
-		// Calculate current phi and calculate source
+		// Calculate current phi and theta
+		if (phiSweep) {
+			if (n % (update / 2) == 0) {
+				psweep = pi / 4;
+			}
+			else if ((n + (update / 4)) % (update / 2) == 0) {
+				psweep = -pi / 4;
+			}
+		}
+		if (thetaSweep) {
+			if (n % (update / 2) == 0) {
+				tsweep = pi / 4;
+			}
+			else if ((n + (update / 4)) % (update / 2) == 0) {
+				tsweep = -pi / 4;
+			}
+		}
+		
+		// Get random deviation if given distribution
+		if ((*spread)[0] != 0) {
+			sphi = dist_phi(gensphi);
+		}
+		if ((*spread)[1] != 0) {
+			stheta = dist_theta(genstheta);
+		}
+
+		// Skip invalid thetas
+		if (stheta + theta_inc_rad + tsweep > pi / 2) {
+			continue;
+		}
+
 		phi_inc_rad += dphi_rad;
-		uint16_t v_offset = ceil(-L * 1.15 * tan(theta_rad - pi / 2.0));
-		src[0] = (int16_t)(round((maxh + v_offset) / tan(theta_rad - pi / 2.0) * cos(phi_inc_rad))) + dest[0];
-		src[1] = (int16_t)(round((maxh + v_offset) / tan(theta_rad - pi / 2.0) * sin(phi_inc_rad))) + dest[1];
+
+		// Calculate source point
+		double slant = tan(theta_inc_rad + stheta + tsweep - pi / 2.0);
+		uint16_t v_offset = ceil(-L * 1.15 * slant);
+		src[0] = (int16_t)(round((maxh + v_offset) / slant * cos(phi_inc_rad + sphi + psweep))) + dest[0];
+		src[1] = (int16_t)(round((maxh + v_offset) / slant * sin(phi_inc_rad + sphi + psweep))) + dest[1];
 		src[2] = (maxh + v_offset);
 
 		// Send particle along
@@ -553,7 +597,13 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 		timed += durad.count()/1000;
 
 		// Add particle
-		int8_t sp = (*species)[0];
+		if (species->size() > 1) {
+			sp = sist(gens);
+		}
+		else {
+			sp = (*species)[0];
+		}
+		
 		if (grid[diffusing[2] * L * L + diffusing[1] * L + diffusing[0]] == 0) {
 			grid[diffusing[2] * L * L + diffusing[1] * L + diffusing[0]] = sp;
 			ordered[diffusing[2] * L * L + diffusing[1] * L + diffusing[0]] = n + 1;
