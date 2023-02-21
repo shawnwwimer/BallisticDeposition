@@ -29,13 +29,22 @@ Surface3D::Surface3D(uint16_t length, uint16_t height, uint16_t width, int8_t* g
 	energies = (float*)malloc(sizeof(float) * 27); // Number of points in 3x3x3
 
 	// Initialize, first to zero and then update based on the grid
+	uint16_t point[3] = { 0, 0, 0 };
 	for (uint32_t i = 0; i < L*W*H; i++) {
 		adjacency[i] = 0;
-		for (uint8_t j = 0; j < species->size(); j++) {
-			energy_grid[i * species->size() + j] = 0.0;
+		wrap_index(i, point, L, H);
+		for (int32_t s = 0; s < species->size(); s++) {
+			if (point[2] > 0 && point[2] < H - 1)
+			{
+				energy_grid[i * species->size() + s] += (*weights)[(*species)[s]][0] * (6 + 12 / 1.1414 + 8 / 1.732);
+			}
+			else
+			{
+				energy_grid[i * species->size() + s] += (*weights)[(*species)[s]][0] * (5 + 8 / 1.1414 + 4 / 1.732);
+			}
 		}
-	}
-	uint16_t point[3] = { 0, 0, 0 };
+}
+	
 	for (uint32_t i = 0; i < L * W * H; i++) {
 		if (grid[i] > 0) {
 			wrap_index(i, point, L, H);
@@ -90,20 +99,20 @@ uint8_t Surface3D::add(uint16_t* center, int8_t sp)
 				for (int32_t s = 0; s < species->size(); s++) {
 					if ((i == 0 && j == 0) || (i == 0 && k == 0) || (j == 0 && k == 0)) {
 						// Shares side
-						energy_grid[idx * species->size() + s] += (*weights)[s][sp - 1];
+						energy_grid[idx * species->size() + s] += (*weights)[(*species)[s]][sp];
+						energy_grid[idx * species->size() + s] -= (*weights)[(*species)[s]][0];
 					}
 					else if (i == 0 || j == 0 || k == 0) {
 						// Shares edge
-						energy_grid[idx * species->size() + s] += (*weights)[s][sp - 1] / 1.414;
+						energy_grid[idx * species->size() + s] += (*weights)[(*species)[s]][sp] / 1.414;
+						energy_grid[idx * species->size() + s] -= (*weights)[(*species)[s]][0] / 1.414;
 					}
 					else {
 						//Shares corner
-						energy_grid[idx * species->size() + s] += (*weights)[s][sp - 1] / 1.732;
+						energy_grid[idx * species->size() + s] += (*weights)[(*species)[s]][sp] / 1.732;
+						energy_grid[idx * species->size() + s] -= (*weights)[(*species)[s]][0] / 1.732;
 					}
-
-					
 				}
-				
 			}
 		}
 	}
