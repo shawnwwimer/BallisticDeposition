@@ -69,7 +69,7 @@ void SimulationParametersFull::serialize() {
 		for (int w1 = 0; w1 < p->weights->size(); w1++) {
 			serialization += "[";
 			for (int w2 = 0; w2 < p->weights->size(); w2++) {
-				serialization += "1";
+				serialization += std::to_string((*(p->weights))[w1][w2]);
 				if (w2 < p->weights->size() - 1) {
 					serialization += ", ";
 				}
