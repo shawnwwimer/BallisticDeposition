@@ -3,6 +3,8 @@
 #include "zip.h"
 //#include "math_utils.h"
 
+#define COMPRESSION_LEVEL Z_DEFAULT_COMPRESSION
+
 uint16_t Bresenham3D(uint16_t* src, uint16_t* dest, uint16_t* points) {
 	// Distance
 	uint16_t d[3] = { (uint16_t)abs((int)dest[0] - (int)src[0]), (uint16_t)abs((int)dest[1] - (int)src[1]), (uint16_t)abs((int)dest[2] - (int)src[2]) };
@@ -467,7 +469,7 @@ int writeFileToZip(const char* zipname, const char* filename)
 			zip_fileinfo zi = { 0 };
 			
 			// Open it inside the zip for writing
-			if (Z_OK == zipOpenNewFileInZip64(zf, filename, &zi, NULL, 0, NULL, 0, NULL, Z_DEFLATED, Z_DEFAULT_COMPRESSION, 1)) {
+			if (Z_OK == zipOpenNewFileInZip64(zf, filename, &zi, NULL, 0, NULL, 0, NULL, Z_DEFLATED, COMPRESSION_LEVEL, 1)) {
 				// Write in zip
 				if (zipWriteInFileInZip(zf, size == 0 ? "" : &buffer[0], size)) {
 					error = ZIP_ERRNO;
