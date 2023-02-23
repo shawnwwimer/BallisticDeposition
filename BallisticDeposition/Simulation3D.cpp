@@ -1,5 +1,6 @@
 #include "Simulation3D.h"
 #include "cnpy.h"
+#include "zip.h"
 //#include "math_utils.h"
 
 uint16_t Bresenham3D(uint16_t* src, uint16_t* dest, uint16_t* points) {
@@ -343,7 +344,8 @@ uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, 
 	return i;
 }
 
-uint32_t denseToSparse(int8_t* grid, int16_t** sparse, uint16_t L, uint16_t H) {
+uint32_t denseToSparse(int8_t* grid, int16_t** sparse, uint16_t L, uint16_t H)
+{
 	// Count the number of points (and therefore rows) needed
 	uint32_t points = 0;
 	for (uint32_t k = 0; k < H; k++) {
@@ -381,7 +383,8 @@ uint32_t denseToSparse(int8_t* grid, int16_t** sparse, uint16_t L, uint16_t H) {
 	return points;
 }
 
-uint32_t denseToSparse(uint32_t* grid, uint32_t** sparse, uint16_t L, uint16_t H) {
+uint32_t denseToSparse(uint32_t* grid, uint32_t** sparse, uint16_t L, uint16_t H)
+{
 	// Count the number of points (and therefore rows) needed
 	uint32_t points = 0;
 	for (uint32_t k = 0; k < H; k++) {
@@ -419,7 +422,8 @@ uint32_t denseToSparse(uint32_t* grid, uint32_t** sparse, uint16_t L, uint16_t H
 	return points;
 }
 
-uint16_t sparseToDense(int16_t* sparse, uint32_t num_points, int8_t* grid, uint16_t L, uint16_t H) {
+uint16_t sparseToDense(int16_t* sparse, uint32_t num_points, int8_t* grid, uint16_t L, uint16_t H)
+{
 	uint16_t maxh = 0;
 	uint32_t counter = 0;
 	int16_t row[4] = { 0, 0, 0, 0 };
@@ -436,7 +440,55 @@ uint16_t sparseToDense(int16_t* sparse, uint32_t num_points, int8_t* grid, uint1
 	return maxh;
 }
 
+int writeFileToZip(const char* zipname, const char* filename)
+{
+	int error = ZIP_ERRNO;
 
+	zipFile zf = zipOpen64(zipname, APPEND_STATUS_ADDINZIP);
+
+	// Check for a valid zipfile
+	if (zf == NULL) {
+		return ZIP_BADZIPFILE;
+	}
+
+	// Attempt to open the file
+	std::fstream file(filename, std::ios::binary | std::ios::in);
+	if (file.is_open()) {
+		// Get size of file
+		file.seekg(0, std::ios::end);
+		size_t size = file.tellg();
+		file.seekg(0, std::ios::beg);
+
+		// Read in file 
+		// TODO: might want to chunk it since some files may be large
+		std::vector<char> buffer(size);
+		if (size == 0 || file.read(&buffer[0], size)) {
+			// Initialize the parameters for the local header
+			zip_fileinfo zi = { 0 };
+			
+			// Open it inside the zip for writing
+			if (Z_OK == zipOpenNewFileInZip64(zf, filename, &zi, NULL, 0, NULL, 0, NULL, Z_DEFLATED, Z_DEFAULT_COMPRESSION, 1)) {
+				// Write in zip
+				if (zipWriteInFileInZip(zf, size == 0 ? "" : &buffer[0], size)) {
+					error = ZIP_ERRNO;
+				}
+
+				// Close it inside zip
+				if (zipCloseFileInZip(zf)) {
+					error = ZIP_OK;
+				}
+				// Close file
+				file.close();
+			}
+		}
+	}
+
+	// Try to close zip
+	if (zipClose(zf, NULL)) {
+		return ZIP_ERRNO;
+	}
+	return error;
+}
 
 int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float phi, float turns, uint32_t seed, uint16_t diffusion_steps, std::vector<int8_t> * species, std::vector<float> * spread, std::vector<std::vector<float>> * weights, int16_t* inputGrid, uint32_t inputGridPoints, int16_t** outGrid, uint32_t stepper_resolution, SimulationParametersFull* params, std::string &system, bool phiSweep, bool thetaSweep) {
 	auto start = std::chrono::high_resolution_clock::now();
@@ -539,10 +591,10 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 		// Calculate current phi and theta
 		if (phiSweep) {
 			if (n % (update / 2) == 0) {
-				psweep = pi / 4;
+				psweep = 90 * pi / 360;// pi / 4;
 			}
 			else if ((n + (update / 4)) % (update / 2) == 0) {
-				psweep = -pi / 4;
+				psweep = -90 * pi / 360;// -pi / 4;
 			}
 		}
 		if (thetaSweep) {
@@ -584,10 +636,11 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 
 		// Diffuse particle
 		auto startd = std::chrono::high_resolution_clock::now();
+		uint8_t d_step = 0;// n / (reps / 20);
 		diffusing[0] = collision[0];
 		diffusing[1] = collision[1];
 		diffusing[2] = collision[2];
-		for (uint16_t d = 1; d < diffusion_steps + 1; d++) {
+		for (uint16_t d = 1; d < diffusion_steps + 1 - d_step; d++) {
 			vacancy = surface->getAdjacentVacancy(diffusing, (*species)[0]);
 			diffusing[0] = vacancy[0];
 			diffusing[1] = vacancy[1];
@@ -672,17 +725,30 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 
 	// Save objects
 	uint32_t point_total = denseToSparse(grid, outGrid, L, H);
-	cnpy::npz_save(filename + ".npz", "arr_0", *outGrid, { point_total, 4 });
+	cnpy::npy_save("grid.npy", *outGrid, { point_total, 4 });
 	//free(sparse);
 	uint32_t* sparse2 = nullptr;
 	uint32_t point_total_ordered = denseToSparse(ordered, &sparse2, L, H);
-	cnpy::npz_save(filename + "_ordered.npz", "arr_0", sparse2, { point_total_ordered, 4 });
+	cnpy::npy_save("ordered.npy", sparse2, { point_total_ordered, 4 });
 	free(sparse2);
 
 	std::ofstream json_file;
-	json_file.open(filename + ".json");
+	json_file.open("params.json");
 	json_file << params->serialization;
 	json_file.close();
+
+	// Combine the files into one zip/npz file
+	zipFile zf = zipOpen64((filename + ".sim").c_str(), 0);
+	zipClose(zf, NULL);
+	int err = writeFileToZip((filename + ".sim").c_str(), "grid.npy");
+	err = writeFileToZip((filename + ".sim").c_str(), "ordered.npy");
+	err = writeFileToZip((filename + ".sim").c_str(), "params.json");
+
+	// Remove the individual files
+	// TODO: combine the writeFileToZip function and the writing of npy files so clean up isn't necessary
+	std::remove("grid.npy");
+	std::remove("ordered.npy");
+	std::remove("params.json");
 
 	// Print the timing
 	std::cout << reps << " reps completed in " << time << " seconds; \n" << reps / time << " reps per second." << std::endl;
