@@ -39,6 +39,12 @@
     <ClCompile Include="..\lib\minizip\ioapi.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SlantedCorridors.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SimulationContinuous.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="math_utils.h">
@@ -72,6 +78,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\lib\minizip\crypt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SimulationContinuous.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SlantedCorridors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

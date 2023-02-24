@@ -148,7 +148,9 @@
     <ClCompile Include="..\lib\minizip\zip.c" />
     <ClCompile Include="BallisticDeposition.cpp" />
     <ClCompile Include="Simulation3D.cpp" />
+    <ClCompile Include="SimulationContinuous.cpp" />
     <ClCompile Include="SimulationParameters.cpp" />
+    <ClCompile Include="SlantedCorridors.cpp" />
     <ClCompile Include="Surface3D.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -161,7 +163,9 @@
     <ClInclude Include="..\lib\zlib\zlib.h" />
     <ClInclude Include="math_utils.h" />
     <ClInclude Include="Simulation3D.h" />
+    <ClInclude Include="SimulationContinuous.h" />
     <ClInclude Include="SimulationParameters.h" />
+    <ClInclude Include="SlantedCorridors.h" />
     <ClInclude Include="Surface3D.h" />
   </ItemGroup>
   <ItemGroup>
