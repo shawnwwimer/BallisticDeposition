@@ -5,7 +5,7 @@
 #include<cstdint>
 
 template<typename T>
-uint16_t modulo(T val, uint16_t mod) {
+T modulo(T val, uint16_t mod) {
 	return ((val % mod + mod) % mod);
 }
 
