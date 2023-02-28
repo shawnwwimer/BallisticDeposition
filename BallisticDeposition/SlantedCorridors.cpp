@@ -17,8 +17,65 @@ std::set<particle_priority>* SlantedCorridors::find_bins(std::array<float, 3> po
     bool found = false;
 
     // Order chosen to minimize individual parameter changes
+    // --
+    std::array<float, 3> corner = { modulof(position[0] - radius, L), modulof(position[1] - radius, L), position[2] };
+    bin = find_bin(corner);
+    for (int i = 0; i < bins_found_num; i++) {
+        if (bins_found[i] == bin) {
+            found = true;
+        }
+    }
+    if (!found) {
+        bins_found[bins_found_num] = bin;
+        bins_found_num += 1;
+    }
+    found = false;
+
+    // +-
+    corner[0] = modulof(position[0] + radius, L);
+    bin = find_bin(corner);
+    for (int i = 0; i < bins_found_num; i++) {
+        if (bins_found[i] == bin) {
+            found = true;
+        }
+    }
+    if (!found) {
+        bins_found[bins_found_num] = bin;
+        bins_found_num += 1;
+    }
+    found = false;
+
+    // ++
+    corner[1] = modulof(position[1] + radius, L);
+    bin = find_bin(corner);
+    for (int i = 0; i < bins_found_num; i++) {
+        if (bins_found[i] == bin) {
+            found = true;
+        }
+    }
+    if (!found) {
+        bins_found[bins_found_num] = bin;
+        bins_found_num += 1;
+    }
+    found = false;
+
+    // -+
+    corner[0] = modulof(position[0] - radius, L);
+    bin = find_bin(corner);
+    for (int i = 0; i < bins_found_num; i++) {
+        if (bins_found[i] == bin) {
+            found = true;
+        }
+    }
+    if (!found) {
+        bins_found[bins_found_num] = bin;
+        bins_found_num += 1;
+    }
+    found = false;
+
+    /*
     // ---
-    std::array<float, 3>corner = { modulof(position[0] - radius, L), modulof(position[1] - radius, L), position[2] - radius };
+    std::array<float, 3>corner = {modulof(position[0] - radius, L), modulof(position[1] - radius, L), position[2] - radius};
     bin = find_bin(corner);
     for (int i = 0; i < bins_found_num; i++) {
         if (bins_found[i] == bin) {
@@ -129,12 +186,13 @@ std::set<particle_priority>* SlantedCorridors::find_bins(std::array<float, 3> po
         bins_found_num += 1;
     }
     found = false;
+    */
 
     return nullptr;
 }
 
 // Atoms is (nx6) float array
-collision_description* SlantedCorridors::drop_particle(std::array<float, 3> position, float radius, std::vector<std::array<float, 6>> atoms)
+collision_description* SlantedCorridors::drop_particle(std::array<float, 3> position, float radius, std::vector<std::vector<float>> atoms)
 {
     // Combine bins into temporary big bin
     find_bins(position, radius);
@@ -151,7 +209,7 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
     
 
     for (auto p : b) {
-        std::array<float, 6> particle = atoms[p.idx];
+        std::vector<float> particle = atoms[atoms.size() - p.idx - 1];
 
         float rs = radius + particle[4];
 
@@ -188,14 +246,14 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
             if (z < radius) {
                 continue; // Would only collide below the substrate
             }
-            collision.position = { x, position[1], z };
+            collision.position = { modulof(x, L), position[1], z };
             collision.idx = p.idx;
             return &collision;
         }
     }
-    float x = adjusted_x - radius * tan_theta;
+    float x = position[0] - radius * tan_theta;
     
-    collision.position = { x, position[1], radius };
+    collision.position = { modulof(x, L), position[1], radius };
     collision.idx = -1;
     return &collision;
 }

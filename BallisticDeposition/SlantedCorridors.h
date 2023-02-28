@@ -4,6 +4,7 @@
 #include <set>
 #include <vector>
 #include <iterator>
+#include <iostream>
 
 //#include "math_utils.h"
 
@@ -53,10 +54,10 @@ private:
 	uint8_t bins_num;
 	std::vector<particle_priority*> particles;
 	//bool comp(particle_priority a, particle_priority b) { return a.priority > b.priority; }; // need a comparison for the sets
-	std::set<particle_priority>** bins = (std::set<particle_priority>**)malloc(sizeof(std::set<particle_priority>*));;
+	std::vector<std::set<particle_priority>> bins;
 
 	// For use by functions
-	std::array<std::set<particle_priority>*, 8> bins_found;
+	std::array<std::set<particle_priority>*, 8> bins_found = { 0 };
 	uint8_t bins_found_num = 0;
 	collision_description collision = collision_description(0, 0, 0, -1);
 	//float dropped_point[3] = { 0.f };
@@ -71,7 +72,7 @@ private:
 	}
 	std::set<particle_priority>* find_bin(std::array<float, 3> position)
 	{
-		return bins[find_bin_idx(position)];
+		return &bins[find_bin_idx(position)];
 	}
 	std::set<particle_priority>* find_bins(std::array<float, 3> position, float radius);
 	
@@ -92,19 +93,32 @@ public:
 		
 		bins_on_side = (uint8_t)(L / bin_size);
 		bins_num = bins_on_side * bins_on_side;
+		/*
+		bins = (std::set<particle_priority>**)malloc(sizeof(std::set<particle_priority>**));
+		if (bins == nullptr) {
+			throw;
+		}
 		*bins = (std::set<particle_priority>*)malloc(sizeof(std::set<particle_priority>*) * bins_num);
 		
 		for (uint8_t i = 0; i < bins_num; i++) {
-			bins[i] = new std::set<particle_priority>();
+			(bins)[i] = new std::set<particle_priority>;
 		}
+		*/
+		for (uint8_t i = 0; i < bins_num; i++) {
+			std::set<particle_priority>* b = new std::set<particle_priority>;
+			bins.push_back(*b);
+		}
+		//bins.push_back(new std::set<particle_priority>);
+
+		std::cout << "After iteration" << std::endl;
 
 	}
 	~SlantedCorridors()
 	{
-		for (int i = 0; i < bins_num; i++) {
-			delete(bins[i]);
-		}
-		free(bins);
+		//for (int i = 0; i < bins_num; i++) {
+		//	delete(bins[i]);
+		//}
+		//free(*bins);
 
 		/*for (auto p : particles) {
 			delete(p);
@@ -113,9 +127,9 @@ public:
 
 	std::set<particle_priority>* add_to_bins(std::array<float, 3> position, float radius, uint32_t idx)
 	{
-		float priority = calc_priority(position);
+		float priority = calc_priority(position) + idx/100000.0;
 		find_bins(position, radius);
-		particle_priority* x = new particle_priority(idx, priority);
+		particle_priority* x = new particle_priority(idx, priority + idx/100000);
 		particles.push_back(x);
 
 		for (int i = 0; i < bins_found_num; i++) {
@@ -125,7 +139,7 @@ public:
 		return nullptr;
 	}
 
-	collision_description* drop_particle(std::array<float, 3> position, float radius, std::vector<std::array<float, 6>> atoms);
+	collision_description* drop_particle(std::array<float, 3> position, float radius, std::vector<std::vector<float>> atoms);
 
 
 
