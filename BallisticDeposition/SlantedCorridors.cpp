@@ -188,7 +188,7 @@ std::set<particle_priority>* SlantedCorridors::find_bins(std::array<float, 3> po
     found = false;
     */
 
-    return nullptr;
+return nullptr;
 }
 
 // Atoms is (nx6) float array
@@ -201,15 +201,19 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
     for (int i = 0; i < bins_found_num; i++) {
         std::set_union(std::begin(b), std::end(b), std::begin(*bins_found[i]), std::end(*bins_found[i]), std::inserter(b, std::begin(b)));
     }
-    
+
     // Need to know relative position
     float adjusted_x = position[2] * tan_theta + position[0];
     int factor = (int)(adjusted_x / L);
     adjusted_x = modulof(adjusted_x, Lfloat);
-    
+    if (particles.size() == 293) {
+        std::cout << position[0] << position[1] << position[2] << std::endl;
+    }
+
 
     for (auto p : b) {
-        std::vector<float> particle = atoms[atoms.size() - p.idx - 1];
+        int idx = atoms.size() - p.idx - 1;
+        std::vector<float> particle = atoms[idx];
 
         float rs = radius + particle[4];
 
@@ -247,7 +251,14 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
                 continue; // Would only collide below the substrate
             }
             collision.position = { modulof(x, L), position[1], z };
-            collision.idx = p.idx;
+            collision.idx = atoms.size() - p.idx - 1;
+            if (p.idx == 68.) {
+                std::cout << "Group 66" << std::endl;
+            }
+
+            if ((x - particle[0]) * (x - particle[0]) + (position[1] - particle[1] + offset[1]) * (position[1] - particle[1] + offset[1]) + (z - particle[2]) * (z - particle[2])-.001 > radii2) {
+                std::cout << "Too far!" << std::endl;
+            }
             return &collision;
         }
     }

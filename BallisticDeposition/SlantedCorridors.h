@@ -79,7 +79,11 @@ private:
 	//std::vector<uint32_t> get_nearby_particles(float* position, float radius);
 	float calc_priority(std::array<float, 3> position)
 	{
-		return position[2];
+		float adjusted_x = position[2] * tan_theta + position[0];
+		float sub = fmodf(adjusted_x, bin_size) * sin_theta;
+		float above = (position[0] - adjusted_x) / sin_theta;
+		return sub + above;
+		//return position[2];
 	}
 
 
