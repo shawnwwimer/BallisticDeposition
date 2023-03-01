@@ -213,39 +213,39 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
 
     for (auto p : b) {
         int idx = atoms.size() - p.idx - 1;
-        std::vector<float> particle = atoms[idx];
+        //std::vector<float> particle = atoms[idx];
 
-        float rs = radius + particle[4];
+        float rs = radius + atoms[idx][4];
 
-        float x_on_particle_z = (position[2] - particle[2]) * tan_theta + position[0];
+        float x_on_particle_z = (position[2] - atoms[idx][2]) * tan_theta + position[0];
         int factor = (int)(x_on_particle_z / L);
         x_on_particle_z = fmod(x_on_particle_z, Lfloat);
 
         float offset[3] = { 0 };
 
-        if (particle[0] - x_on_particle_z < -Lfloat / 2.0) {
+        if (atoms[idx][0] - x_on_particle_z < -Lfloat / 2.0) {
             offset[0] = -Lfloat;
         }
-        else if (particle[0] - x_on_particle_z > Lfloat / 2.0) {
+        else if (atoms[idx][0] - x_on_particle_z > Lfloat / 2.0) {
             offset[0] = Lfloat;
         }
-        if (particle[1] - position[1] < -Lfloat / 2.0) {
+        if (atoms[idx][1] - position[1] < -Lfloat / 2.0) {
             offset[1] = -Lfloat;
         }
-        else if (particle[1] - position[1] > Lfloat / 2.0) {
+        else if (atoms[idx][1] - position[1] > Lfloat / 2.0) {
             offset[1] = Lfloat;
         }
 
         // Find distance squared value
         float radii2 = rs * rs;
-        float rotx = (position[0] - factor * Lfloat - particle[0] + offset[0]) * cos_theta + (position[2] - particle[2]) * sin_theta;
-        float d2 = rotx * rotx + (position[1] - particle[1] + offset[1]) * (position[1] - particle[1] + offset[1]);
+        float rotx = (position[0] - factor * Lfloat - atoms[idx][0] + offset[0]) * cos_theta + (position[2] - atoms[idx][2]) * sin_theta;
+        float d2 = rotx * rotx + (position[1] - atoms[idx][1] + offset[1]) * (position[1] - atoms[idx][1] + offset[1]);
 
         if (radii2 > d2) {
             // Calculate position
             float rotz = sqrt(radii2 - d2);
-            float z = rotx * sin_theta + rotz * cos_theta + particle[2];
-            float x = rotx * cos_theta - rotz * sin_theta + particle[0];
+            float z = rotx * sin_theta + rotz * cos_theta + atoms[idx][2];
+            float x = rotx * cos_theta - rotz * sin_theta + atoms[idx][0];
 
             if (z < radius) {
                 continue; // Would only collide below the substrate
@@ -256,7 +256,7 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
                 std::cout << "Group 66" << std::endl;
             }
 
-            if ((x - particle[0]) * (x - particle[0]) + (position[1] - particle[1] + offset[1]) * (position[1] - particle[1] + offset[1]) + (z - particle[2]) * (z - particle[2])-.001 > radii2) {
+            if ((x - atoms[idx][0]) * (x - atoms[idx][0]) + (position[1] - atoms[idx][1] + offset[1]) * (position[1] - atoms[idx][1] + offset[1]) + (z - atoms[idx][2]) * (z - atoms[idx][2])-.001 > radii2) {
                 std::cout << "Too far!" << std::endl;
             }
             return &collision;
