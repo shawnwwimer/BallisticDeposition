@@ -1,9 +1,10 @@
 #include "SimulationContinuous.h"
+#include "cnpy.h"
 
-int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, uint16_t diffusion_length, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, SimulationParametersFull* params, std::string& system)
+int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, uint16_t diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, SimulationParametersFull* params, std::string& system)
 {
 	auto start = std::chrono::high_resolution_clock::now();
-	std::vector<std::array<float, 6>> atoms;
+	std::vector<std::vector<float>> atoms;
 
 	SlantedCorridors corridors = SlantedCorridors(L, H, theta, bin_size);
 
@@ -29,7 +30,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	start = std::chrono::high_resolution_clock::now();
 	int update = 128; // number of printed updates
 	std::array<float, 3> dest;
-	std::array<float, 6> new_atom;
+	std::vector<float> new_atom;
 	float current_fiber_id = 1;
 	float fiber = 0;
 	double timel = 0;
@@ -38,7 +39,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		auto startl = std::chrono::high_resolution_clock::now();
 
 		// Generate 
-		dest = { 0,0,H };//{ dist(gen), dist(gen), H };
+		dest = { dist(gen), dist(gen), 0 };//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
 
 		// Choose species
 		int sp = 0;
@@ -83,6 +84,16 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	std::chrono::system_clock::time_point epoch = std::chrono::system_clock::now();
 	uint32_t epoch_time = epoch.time_since_epoch().count() * std::chrono::system_clock::period::num / std::chrono::system_clock::period::den;
 
+	float* outGrid = (float*)malloc(sizeof(float) * reps * 6);
+	if (outGrid != NULL) {
+		for (int j = 0; j < atoms.size(); j++) {
+			for (int i = 0; i < 6; i++) {
+				outGrid[j * 6 + i] = atoms[j][i];
+			}
+		}
+		cnpy::npy_save("grid.npy", outGrid, { reps, 6 });
+		free(outGrid);
+	}
 
 	// Print the timing
 	std::cout << reps << " reps completed in " << time << " seconds; \n" << reps / time << " reps per second." << std::endl;

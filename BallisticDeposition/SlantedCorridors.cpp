@@ -206,13 +206,10 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
     float adjusted_x = position[2] * tan_theta + position[0];
     int factor = (int)(adjusted_x / L);
     adjusted_x = modulof(adjusted_x, Lfloat);
-    if (particles.size() == 293) {
-        std::cout << position[0] << position[1] << position[2] << std::endl;
-    }
 
 
     for (auto p : b) {
-        int idx = atoms.size() - p.idx - 1;
+        int idx = p.idx;//atoms.size() - p.idx - 1;
         //std::vector<float> particle = atoms[idx];
 
         float rs = radius + atoms[idx][4];
@@ -252,10 +249,6 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
             }
             collision.position = { modulof(x, L), position[1], z };
             collision.idx = atoms.size() - p.idx - 1;
-            if (p.idx == 68.) {
-                std::cout << "Group 66" << std::endl;
-            }
-
             if ((x - atoms[idx][0]) * (x - atoms[idx][0]) + (position[1] - atoms[idx][1] + offset[1]) * (position[1] - atoms[idx][1] + offset[1]) + (z - atoms[idx][2]) * (z - atoms[idx][2])-.001 > radii2) {
                 std::cout << "Too far!" << std::endl;
             }

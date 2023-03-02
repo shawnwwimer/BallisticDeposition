@@ -16,8 +16,8 @@ struct particle_priority
 	//bool operator <(particle_priority a) { return (priority < a.priority); }
 	//bool operator >(particle_priority a) { return (priority > a.priority); }
 	//bool operator ==(particle_priority a) { return (priority == a.priority); }
-	friend bool operator <(particle_priority a, particle_priority b) { return a.priority < b.priority; }
-	friend bool operator >(particle_priority a, particle_priority b) { return a.priority > b.priority; }
+	friend bool operator <(particle_priority a, particle_priority b) { return a.priority > b.priority; }
+	friend bool operator >(particle_priority a, particle_priority b) { return a.priority < b.priority; }
 	friend bool operator ==(particle_priority a, particle_priority b) { return (a.priority == b.priority) && (a.idx == b.idx); }
 };
 
@@ -79,9 +79,9 @@ private:
 	//std::vector<uint32_t> get_nearby_particles(float* position, float radius);
 	float calc_priority(std::array<float, 3> position)
 	{
-		float adjusted_x = position[2] * tan_theta + position[0];
-		float sub = fmodf(adjusted_x, bin_size) * sin_theta;
-		float above = (position[0] - adjusted_x) / sin_theta;
+		float x1 = position[0] + position[2] * tan_theta;
+		float sub = (ceil(x1 / bin_size) * bin_size - x1) * sin_theta;
+		float above = position[2] / cos_theta;
 		return sub + above;
 		//return position[2];
 	}
@@ -133,7 +133,7 @@ public:
 	{
 		float priority = calc_priority(position) + idx/100000.0;
 		find_bins(position, radius);
-		particle_priority* x = new particle_priority(idx, priority + idx/100000);
+		particle_priority* x = new particle_priority(idx, priority);
 		particles.push_back(x);
 
 		for (int i = 0; i < bins_found_num; i++) {
