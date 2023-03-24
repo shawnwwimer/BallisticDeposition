@@ -7,11 +7,12 @@ SimulationParametersFull::~SimulationParametersFull()
 
 void SimulationParametersFull::clearLayers()
 {
-	for (uint8_t i = 0; i < number_of_layers; i++)
+	int num_layers = number_of_layers;
+	for (uint8_t i = 0; i < num_layers; i++)
 	{
-		turns -= parameters[number_of_layers - i - 1]->turns;
-		deposited -= parameters[number_of_layers - i - 1]->repetitions;
-		delete(parameters[number_of_layers - i - 1]);
+		turns -= parameters[i]->turns;
+		deposited -= parameters[i]->repetitions;
+		delete(parameters[i]);
 		number_of_layers -= 1;
 	}
 }
@@ -40,6 +41,12 @@ void SimulationParametersFull::serialize() {
 		std::string turns_str = std::to_string(p->turns);
 		turns_str.erase(turns_str.find_last_not_of('0') + 1, std::string::npos);
 		turns_str.erase(turns_str.find_last_not_of('.') + 1, std::string::npos);
+		std::string phi_deg_str = std::to_string(p->phi_deg);
+		phi_deg_str.erase(phi_deg_str.find_last_not_of('0') + 1, std::string::npos);
+		phi_deg_str.erase(phi_deg_str.find_last_not_of('.') + 1, std::string::npos);
+		std::string theta_end_str = std::to_string(p->theta_end);
+		theta_end_str.erase(theta_end_str.find_last_not_of('0') + 1, std::string::npos);
+		theta_end_str.erase(theta_end_str.find_last_not_of('.') + 1, std::string::npos);
 		serialization += "\"" + std::to_string(i + 1) + "\": {";
 		serialization += "\"Deposited\": " + std::to_string(p->deposited) + ", ";
 		serialization += "\"Parameters\": {";
@@ -51,6 +58,9 @@ void SimulationParametersFull::serialize() {
 		serialization += "\"H\": " + std::to_string(p->height) + ", ";
 		serialization += "\"D\": " + std::to_string(p->diffusion_steps) + ", ";
 		serialization += "\"turns\": " + turns_str + ", ";
+		serialization += "\"phi sweeps\": " + std::to_string(p->phi_num) + ", ";
+		serialization += "\"phi sweep degrees\": " + phi_deg_str + ", ";
+		serialization += "\"theta end\": " + theta_end_str + ", ";
 		serialization += "\"stepper resolution\": " + std::to_string(p->stepper_resolution) + ", ";
 		serialization += "\"species\": [";
 		for (int s = 0; s < p->species->size(); s++) {

@@ -14,6 +14,9 @@ public:
 	float phi;
 	float turns;
 	std::vector<float> * spread;
+	int phi_num = 0;
+	float phi_deg = 0;
+	float theta_end;
 	uint32_t stepper_resolution;
 	
 	// Material parameters

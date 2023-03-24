@@ -32,6 +32,8 @@ public:
 
 	~Surface3D();
 
+	uint8_t add_directly(uint16_t* center, int8_t sp);
+
 	uint8_t add(uint16_t* center, int8_t sp);
 	uint8_t remove(uint16_t* center, int8_t sp);
 	uint8_t getNearestNeighbors(uint16_t* center);

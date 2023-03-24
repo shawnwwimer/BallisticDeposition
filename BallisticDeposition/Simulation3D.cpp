@@ -302,7 +302,7 @@ uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, 
 		int xidx = (x1 % L + L) % L;
 		int yidx = (y1 % L + L) % L;
 		while (z1 != z2) {
-			if (grid[z1 * L * L + yidx * L + xidx] > 0) {
+			if (z1 < H && grid[z1 * L * L + yidx * L + xidx] > 0) {
 				collision[0] = (xlast % L + L) % L;
 				collision[1] = (ylast % L + L) % L;
 				collision[2] = zlast;
@@ -492,7 +492,7 @@ int writeFileToZip(const char* zipname, const char* filename)
 	return error;
 }
 
-int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float phi, float turns, uint32_t seed, uint16_t diffusion_steps, std::vector<int8_t> * species, std::vector<float> * spread, std::vector<std::vector<float>> * weights, int16_t* inputGrid, uint32_t inputGridPoints, int16_t** outGrid, uint32_t stepper_resolution, SimulationParametersFull* params, std::string &system, bool phiSweep, bool thetaSweep) {
+int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float phi, float turns, uint32_t seed, uint16_t diffusion_steps, std::vector<int8_t>* species, std::vector<float>* spread, std::vector<std::vector<float>>* weights, int16_t* inputGrid, uint32_t inputGridPoints, int16_t** outGrid, int phi_num, float phi_deg, uint32_t stepper_resolution, SimulationParametersFull* params, std::string& system, bool phiSweep, bool thetaSweep, float thetaEnd, Acceleration acc) {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	// Magic numbers
@@ -509,6 +509,8 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 		grid[i] = 0;
 		ordered[i] = 0;
 	}
+
+	int* diffusion_lengths = (int*)malloc(sizeof(int) * reps * 3);
 
 	// Initialize with inputGrid if necessary
 	if (inputGrid != nullptr) {
@@ -542,6 +544,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	double sphi = 0;
 	double psweep = 0;
 	double tsweep = 0;
+	int swap_direction = 0;
 
 	// Create surface
 	Surface3D * surface = new Surface3D(L, H, L, grid, species, weights, seed);
@@ -576,7 +579,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	std::cout << "Set-up took " << timep.count() / 1000 << " s." << std::endl;
 
 	start = std::chrono::high_resolution_clock::now();
-	int8_t sp = (*species)[0];
+	int8_t sp = 0;//(*species)[0];
 	uint32_t deposited = 0;
 	uint32_t not_deposited = 0;
 	double timel = 0;
@@ -592,27 +595,31 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 
 		// Calculate current phi and theta
 		if (phiSweep) {
-			if (n % (update / 2) == 0) {
-				psweep = 90 * pi / 360;// pi / 4;
+			int stage = n % (reps/phi_num);
+			if (stage == 0) {
+				psweep = phi_deg * pi / 180;// pi / 4;
+				swap_direction += 1;
 			}
-			else if ((n + (update / 4)) % (update / 2) == 0) {
-				psweep = -90 * pi / 360;// -pi / 4;
+			else if (stage == (reps/phi_num)/2) {
+				psweep = -phi_deg * pi / 180;// -pi / 4;
+				swap_direction += 1;
 			}
 		}
 		if (thetaSweep) {
-			if (n % (update / 2) == 0) {
+			/*if (n % (update) == 0) {
 				tsweep = pi / 4;
 			}
-			else if ((n + (update / 4)) % (update / 2) == 0) {
+			else if ((n + (update)) % (update / 2) == 0) {
 				tsweep = -pi / 4;
-			}
+			}*/
+			theta_inc_rad = (pi / 180.0) * (theta + ((thetaEnd - theta) * float(n) / float(reps)));
 		}
 		
 		// Get random deviation if given distribution
-		if ((*spread)[0] != 0) {
+		if ((*spread)[0] > 0.000001) {
 			sphi = dist_phi(gensphi);
 		}
-		if ((*spread)[1] != 0) {
+		if ((*spread)[1] > 0.000001) {
 			stheta = dist_theta(genstheta);
 		}
 
@@ -621,13 +628,23 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 			continue;
 		}
 
-		phi_inc_rad += dphi_rad;
+		if (acc == Acceleration::NONE) {
+			phi_inc_rad += dphi_rad;
+		}
+		else if (acc == Acceleration::ACC) {
+			phi_inc_rad = 2 * dphi_rad * n - dphi_rad / reps * n * n;
+		}
+		else if (acc == Acceleration::DEC) {
+			//phi_inc_rad = dphi_rad / reps * n * n;
+			phi_inc_rad = (pi / 180.0) * sqrt(664.3194 * n + 280.2903)/102 - 10.6962;
+		}
+		
 
 		// Calculate source point
 		double slant = tan(theta_inc_rad + stheta + tsweep - pi / 2.0);
-		uint16_t v_offset = ceil(-L * 1.15 * slant);
-		src[0] = (int16_t)(round((maxh + v_offset) / slant * cos(phi_inc_rad + sphi + psweep))) + dest[0];
-		src[1] = (int16_t)(round((maxh + v_offset) / slant * sin(phi_inc_rad + sphi + psweep))) + dest[1];
+		uint32_t v_offset = ceil(-L * 1.15 * slant);
+		src[0] = (uint32_t)(round((maxh + v_offset) / slant * cos(phi_inc_rad + sphi + psweep))) + dest[0];
+		src[1] = (uint32_t)(round((maxh + v_offset) / slant * sin(phi_inc_rad + sphi + psweep))) + dest[1];
 		src[2] = (maxh + v_offset);
 
 		// Send particle along
@@ -636,6 +653,14 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 		std::chrono::duration<double, std::milli> dural = std::chrono::high_resolution_clock::now() - startl;
 		timel += dural.count()/1000;
 
+		// Get index for random particle
+		if (species->size() > 1) {
+			sp = sist(gens);
+		}
+		else {
+			sp = 0;
+		}
+
 		// Diffuse particle
 		auto startd = std::chrono::high_resolution_clock::now();
 		uint8_t d_step = 0;// n / (reps / 20);
@@ -643,7 +668,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 		diffusing[1] = collision[1];
 		diffusing[2] = collision[2];
 		for (uint16_t d = 1; d < diffusion_steps + 1 - d_step; d++) {
-			vacancy = surface->getAdjacentVacancy(diffusing, (*species)[0]);
+			vacancy = surface->getAdjacentVacancy(diffusing, sp);
 			diffusing[0] = vacancy[0];
 			diffusing[1] = vacancy[1];
 			diffusing[2] = vacancy[2];
@@ -652,25 +677,34 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 		timed += durad.count()/1000;
 
 		// Add particle
-		if (species->size() > 1) {
-			sp = sist(gens);
-		}
-		else {
-			sp = (*species)[0];
-		}
-		
 		if (grid[diffusing[2] * L * L + diffusing[1] * L + diffusing[0]] == 0) {
-			grid[diffusing[2] * L * L + diffusing[1] * L + diffusing[0]] = sp;
+			grid[diffusing[2] * L * L + diffusing[1] * L + diffusing[0]] = (*species)[sp];
 			ordered[diffusing[2] * L * L + diffusing[1] * L + diffusing[0]] = n + 1;
 			surface->add(diffusing, sp);
-			deposited += 1;
+			
 			if (diffusing[2] > maxh) {
 				maxh = diffusing[2];
 			}
+			diffusion_lengths[deposited * 3] = diffusing[0] - collision[0];
+			diffusion_lengths[deposited * 3 + 1] = diffusing[1] - collision[1];
+			diffusion_lengths[deposited * 3 + 2] = diffusing[2] - collision[2];
+			if (diffusion_lengths[deposited * 3] > diffusion_steps) {
+				diffusion_lengths[deposited * 3] = diffusion_lengths[deposited * 3] - L;
+			}
+			else if (diffusion_lengths[deposited * 3] < -diffusion_steps) {
+				diffusion_lengths[deposited * 3] = L + diffusion_lengths[deposited * 3];
+			}
+			if (diffusion_lengths[deposited * 3 + 1] > diffusion_steps) {
+				diffusion_lengths[deposited * 3 + 1] = diffusion_lengths[deposited * 3 + 1] - L;
+			}
+			else if (diffusion_lengths[deposited * 3 + 1] < -diffusion_steps) {
+				diffusion_lengths[deposited * 3 + 1] = L + diffusion_lengths[deposited * 3 + 1];
+			}
+			deposited += 1;
 		}
 		else {
 			not_deposited += 1;
-			traversePathRealTime(src, dest, collision, grid, L, H);
+			//traversePathRealTime(src, dest, collision, grid, L, H);
 		}
 
 		// Periodic updates
@@ -700,6 +734,15 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	layer_params->phi = phi;
 	layer_params->turns = turns;
 	layer_params->spread = spread;
+	if (phiSweep) {
+		layer_params->phi_num = phi_num;
+		layer_params->phi_deg = phi_deg;
+	}
+	else {
+		layer_params->phi_num = 0;
+		layer_params->phi_deg = 0;
+	}
+	
 	layer_params->stepper_resolution = stepper_resolution;
 	layer_params->species = species;
 	layer_params->diffusion_steps = diffusion_steps;
@@ -710,6 +753,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	layer_params->seed = seed;
 	layer_params->time_taken = time;
 	layer_params->time_finished = epoch_time;
+	layer_params->theta_end = thetaSweep ? thetaEnd : theta;
 	params->addLayer(layer_params);
 	params->serialize();
 
@@ -718,12 +762,13 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	theta_str.erase(theta_str.find_last_not_of('0') + 1, std::string::npos);
 	theta_str.erase(theta_str.find_last_not_of('.') + 1, std::string::npos);
 	std::string turns_str = "";
-		if (abs(params->turns) >= 1e-5) {
-			turns_str += "_x" + std::to_string(params->turns);
-			turns_str.erase(turns_str.find_last_not_of('0') + 1, std::string::npos);
-			turns_str.erase(turns_str.find_last_not_of('.') + 1, std::string::npos);
-		}
-	std::string filename = "structures/STF_" + system + "_L" + std::to_string(L) + turns_str + "_Th" + theta_str + "_D" + std::to_string(diffusion_steps) + "_N" + std::to_string(params->deposited) + "_" + std::to_string(epoch_time);
+	if (abs(params->turns) >= 1e-5) {
+		turns_str += "_x" + std::to_string(params->turns);
+		turns_str.erase(turns_str.find_last_not_of('0') + 1, std::string::npos);
+		turns_str.erase(turns_str.find_last_not_of('.') + 1, std::string::npos);
+	}
+	int phi_val = phiSweep ? phi_num : 0;
+	std::string filename = "structures/STF_" + system + "_L" + std::to_string(L) + turns_str + "_Th" + theta_str + "_D" + std::to_string(diffusion_steps) + "_N" + std::to_string(params->deposited) + "_PS" + std::to_string(phi_val) + "_" + std::to_string(epoch_time);
 
 	// Save objects
 	uint32_t point_total = denseToSparse(grid, outGrid, L, H);
@@ -733,6 +778,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	uint32_t point_total_ordered = denseToSparse(ordered, &sparse2, L, H);
 	cnpy::npy_save("ordered.npy", sparse2, { point_total_ordered, 4 });
 	free(sparse2);
+	cnpy::npy_save("diff.npy", diffusion_lengths, { deposited, 3 });
 
 	std::ofstream json_file;
 	json_file.open("params.json");
@@ -744,12 +790,14 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	zipClose(zf, NULL);
 	int err = writeFileToZip((filename + ".sim").c_str(), "grid.npy");
 	err = writeFileToZip((filename + ".sim").c_str(), "ordered.npy");
+	err = writeFileToZip((filename + ".sim").c_str(), "diff.npy");
 	err = writeFileToZip((filename + ".sim").c_str(), "params.json");
 
 	// Remove the individual files
 	// TODO: combine the writeFileToZip function and the writing of npy files so clean up isn't necessary
 	std::remove("grid.npy");
 	std::remove("ordered.npy");
+	std::remove("diff.npy");
 	std::remove("params.json");
 
 	// Print the timing
@@ -757,10 +805,13 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	std::cout << "Line finding and traversal were " << timel << " seconds of that time." << std::endl;
 	std::cout << "Diffusion was " << timed << " seconds of that time." << std::endl;
 
+	std::cout << "Swapped direction " << swap_direction << " times." << std::endl;
+
 	// Free memory
 	delete surface;
 	free(grid);
 	free(ordered);
+	free(diffusion_lengths);
 	//free(points);
 	return point_total;
 }

@@ -32,23 +32,28 @@ Surface3D::Surface3D(uint16_t length, uint16_t height, uint16_t width, int8_t* g
 	uint16_t point[3] = { 0, 0, 0 };
 	for (uint32_t i = 0; i < L*W*H; i++) {
 		adjacency[i] = 0;
+
 		wrap_index(i, point, L, H);
+		for (int32_t s = 0; s < species->size(); s++) {
+			energy_grid[i * species->size() + s] = 0;
+		}
 		for (int32_t s = 0; s < species->size(); s++) {
 			if (point[2] > 0 && point[2] < H - 1)
 			{
-				energy_grid[i * species->size() + s] += (*weights)[(*species)[s]][0] * (6 + 12 / 1.1414 + 8 / 1.732);
+				energy_grid[i * species->size() + s] += (*weights)[(*species)[s]][0] * (6 + 12 / 1.414 + 8 / 1.732);
 			}
 			else
 			{
-				energy_grid[i * species->size() + s] += (*weights)[(*species)[s]][0] * (5 + 8 / 1.1414 + 4 / 1.732);
+				energy_grid[i * species->size() + s] += (*weights)[(*species)[s]][0] * (5 + 8 / 1.414 + 4 / 1.732);
 			}
 		}
 }
-	
+	uint32_t jkjk = 0;
 	for (uint32_t i = 0; i < L * W * H; i++) {
 		if (grid[i] > 0) {
 			wrap_index(i, point, L, H);
-			add(point, grid[i]);
+			add_directly(point, grid[i] - 1);
+			jkjk++;
 		}
 	}
 	/*
@@ -71,7 +76,7 @@ Surface3D::~Surface3D()
 	//delete dist;
 }
 
-uint8_t Surface3D::add(uint16_t* center, int8_t sp)
+uint8_t Surface3D::add_directly(uint16_t* center, int8_t sp)
 {
 	uint8_t n = 0;
 	uint16_t point[3] = { 0, 0, 0 };
@@ -110,6 +115,55 @@ uint8_t Surface3D::add(uint16_t* center, int8_t sp)
 					else {
 						//Shares corner
 						energy_grid[idx * species->size() + s] += (*weights)[(*species)[s]][sp] / 1.732;
+						energy_grid[idx * species->size() + s] -= (*weights)[(*species)[s]][0] / 1.732;
+					}
+				}
+			}
+		}
+	}
+
+	return n;
+}
+
+uint8_t Surface3D::add(uint16_t* center, int8_t sp)
+{
+	uint8_t n = 0;
+	uint16_t point[3] = { 0, 0, 0 };
+	for (int32_t i = -1; i < 2; i++) {
+		uint16_t ii = modulo(center[0] + i, L);
+		point[0] = ii;
+		for (int32_t j = -1; j < 2; j++) {
+			uint16_t jj = modulo(center[1] + j, L);
+			point[1] = jj;
+			for (int32_t k = -1; k < 2; k++) {
+				int32_t kk = center[2] + k;
+
+				// Don't bother with itself or out of z-range
+				if ((i == 0 && j == 0 && k == 0) || kk < 0 || kk > H - 1) {
+					continue;
+				}
+				point[2] = (uint16_t)kk;
+				uint32_t idx = flat_index(point, L, L);
+
+				// add to coordination number
+				adjacency[idx] += 1;
+				n += 1;
+
+				// update energies
+				for (int32_t s = 0; s < species->size(); s++) {
+					if ((i == 0 && j == 0) || (i == 0 && k == 0) || (j == 0 && k == 0)) {
+						// Shares side
+						energy_grid[idx * species->size() + s] += (*weights)[(*species)[s]][(*species)[sp]];
+						energy_grid[idx * species->size() + s] -= (*weights)[(*species)[s]][0];
+					}
+					else if (i == 0 || j == 0 || k == 0) {
+						// Shares edge
+						energy_grid[idx * species->size() + s] += (*weights)[(*species)[s]][(*species)[sp]] / 1.414;
+						energy_grid[idx * species->size() + s] -= (*weights)[(*species)[s]][0] / 1.414;
+					}
+					else {
+						//Shares corner
+						energy_grid[idx * species->size() + s] += (*weights)[(*species)[s]][(*species)[sp]] / 1.732;
 						energy_grid[idx * species->size() + s] -= (*weights)[(*species)[s]][0] / 1.732;
 					}
 				}
@@ -222,7 +276,7 @@ uint16_t* Surface3D::getAdjacentVacancy(uint16_t* center, int8_t sp)
 
 					// If using weights, add to energy list
 					if (weights != nullptr) {
-						energy = energy_grid[idx * species->size() + sp - 1];//calculateLocalEnergy(center, sp);
+						energy = energy_grid[idx * species->size() + sp];//calculateLocalEnergy(center, sp);//
 						if (energy > max) {
 							max = energy;
 						}
@@ -284,7 +338,7 @@ uint16_t* Surface3D::getAdjacentVacancy(uint16_t* center, int8_t sp)
 		float run = 0;
 		for (uint32_t i = 0; i < n; i++) {
 			run += energies[i];
-			if (run > val) {
+			if (run >= val) {
 				return &neighbors[i * 3];
 			}
 		}
@@ -293,18 +347,7 @@ uint16_t* Surface3D::getAdjacentVacancy(uint16_t* center, int8_t sp)
 	}
 }
 
-/// <summary>
-/// Calculate the local binding energy of a grid space.
-/// </summary>
-/// <param name="center">The grid space in question (three element array).</param>
-/// <param name="grid">The grid (2xHxLxL array)</param>
-/// <param name="energy_grid">Energy grid (num_of_speciesxHxLxL) (currently unused).</param>
-/// <param name="size">Size of grid (four element array).</param>
-/// <param name="species">Species of the atom being added.</param>
-/// <param name="weights">The array of binding energys (square num_of_species+1 on-a-side array).</param>
-/// <param name="weight_size">Number of species + 1.</param>
-/// <returns></returns>
-double Surface3D::calculateLocalEnergy(uint16_t* center, int8_t species) {
+double Surface3D::calculateLocalEnergy(uint16_t* center, int8_t sp) {
 	double energy = 0;
 	uint16_t point[3] = { 0, 0, 0 };
 	for (int32_t i = -1; i < 2; i++) {
@@ -327,15 +370,15 @@ double Surface3D::calculateLocalEnergy(uint16_t* center, int8_t species) {
 				if (neighbor > 0) {
 					if ((i == 0 && j == 0) || (i == 0 && k == 0) || (j == 0 && k == 0)) {
 						// Shares side
-						energy += (*weights)[species][neighbor];
+						energy += (*weights)[(*species)[sp]][neighbor];
 					}
 					else if (i == 0 || j == 0 || k == 0) {
 						// Shares edge
-						energy += (*weights)[species][neighbor] / 1.414;
+						energy += (*weights)[(*species)[sp]][neighbor] / 1.414;
 					}
 					else {
 						//Shares corner
-						energy += (*weights)[species][neighbor] / 1.732;
+						energy += (*weights)[(*species)[sp]][neighbor] / 1.732;
 					}
 				}
 			}
