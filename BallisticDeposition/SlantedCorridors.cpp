@@ -197,18 +197,42 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
     // Combine bins into temporary big bin
     find_bins(position, radius);
     //std::set<particle_priority>** fbins = bins_found;
-    std::set<particle_priority> b;
-    for (int i = 0; i < bins_found_num; i++) {
-        std::set_union(std::begin(b), std::end(b), std::begin(*bins_found[i]), std::end(*bins_found[i]), std::inserter(b, std::begin(b)));
-    }
+    //std::set<particle_priority> b;
+    //for (int i = 0; i < bins_found_num; i++) {
+    //    std::set_union(std::begin(b), std::end(b), std::begin(*bins_found[i]), std::end(*bins_found[i]), std::inserter(b, std::begin(b)));
+    //}
 
     // Need to know relative position
     float adjusted_x = position[2] * tan_theta + position[0];
     int factor = (int)(adjusted_x / L);
     adjusted_x = modulof(adjusted_x, Lfloat);
 
+    // Get sizes and set up indices for bins found
+    std::vector<std::set<particle_priority>::iterator> iterators;
+    int total = 0;
+    for (int i = 0; i < bins_found_num; i++) {
+        iterators.push_back(bins_found[i]->begin());
+        total += bins_found[i]->size();
+    }
 
-    for (auto p : b) {
+    for (int i = 0; i < total; i ++) {
+        // find bin with top particle
+        float max = 0;
+        int bin = -1;
+        for (int j = 0; j < bins_found_num; j++) {
+            if (iterators[j] != bins_found[j]->end() && iterators[j]->priority > max) {
+                bin = j;
+                max = iterators[j]->priority;
+            }
+        }
+
+        // get top particle from bin and increment the iterator
+        if (iterators[bin] == bins_found[bin]->end()){
+            break;
+        }
+        particle_priority p = *iterators[bin];
+        iterators[bin]++;
+
         int idx = p.idx;//atoms.size() - p.idx - 1;
         //std::vector<float> particle = atoms[idx];
 
@@ -248,7 +272,7 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
                 continue; // Would only collide below the substrate
             }
             collision.position = { modulof(x, L), position[1], z };
-            collision.idx = atoms.size() - p.idx - 1;
+            collision.idx = p.idx;//atoms.size() - p.idx - 1;
             if ((x - atoms[idx][0]) * (x - atoms[idx][0]) + (position[1] - atoms[idx][1] + offset[1]) * (position[1] - atoms[idx][1] + offset[1]) + (z - atoms[idx][2]) * (z - atoms[idx][2])-.001 > radii2) {
                 std::cout << "Too far!" << std::endl;
             }
