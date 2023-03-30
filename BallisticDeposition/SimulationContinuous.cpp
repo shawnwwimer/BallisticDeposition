@@ -24,7 +24,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		diameter += 1;
 	}
 
-	float* region = (float* )malloc(sizeof(float) * diameter * diameter * diameter);
+	float* region = (float* )malloc(sizeof(float) * diameter * diameter * diameter * 4);
 	for (int k = 0; k < diameter; k++) {
 		int kk = k - (diameter - 1) / 2;
 		for (int j = 0; j < diameter; j++) {
@@ -156,7 +156,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 				outGrid[j * 6 + i] = atoms[j][i];
 			}
 		}
-		cnpy::npy_save("grid.npy", outGrid, { reps, 6 });
+		cnpy::npy_save("structures/cts/grid.npy", outGrid, { reps, 6 });
 		free(outGrid);
 	}
 
