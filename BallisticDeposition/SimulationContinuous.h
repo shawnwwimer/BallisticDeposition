@@ -10,6 +10,7 @@
 
 #include "SimulationParameters.h"
 #include "SlantedCorridors.h"
+#include "CubicSpacePartition.h"
 
 
 float distance3D(uint16_t* p1, uint16_t* p2);

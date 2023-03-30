@@ -8,6 +8,11 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 
 	SlantedCorridors corridors = SlantedCorridors(L, H, theta, bin_size);
 
+	CubicSpacePartition cubes = CubicSpacePartition(L, H, 2.0);
+	float s = 2 * (*radii)[0] / pow(2, 1.0 / 6.0);
+	float s6 = pow(s, 6);
+	float s12 = pow(s6, 2);
+
 	// Set up potentials for diffusion
 	float* potentials = (float*)malloc(sizeof(float) * L * length_scale * L * length_scale * H * length_scale * 4);
 	for (int i = 0; i < L * L * H * length_scale * length_scale * length_scale * 4; i++) {
@@ -88,7 +93,8 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		auto startl = std::chrono::high_resolution_clock::now();
 
 		// Generate 
-		dest = { dist(gen), dist(gen), 0 };//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
+		//dest = { dist(gen), dist(gen), 0 };//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
+		dest = { 0, 0, 0 };
 
 		// Choose species
 		int sp = 0;
@@ -99,9 +105,54 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		std::chrono::duration<double, std::milli> dural = std::chrono::high_resolution_clock::now() - startl;
 		timel += dural.count() / 1000;
 
+		if (n == 48) {
+			for (auto p : atoms) {
+				std::cout << "(" << p[0] << ", " << p[2] << ")," << std::endl;
+			}
+		}
+
 		// TODO: DIFFUSION
 		auto startd = std::chrono::high_resolution_clock::now();
-		if (diffusion_length > 0) {
+		//std::array<float, 3> force = { 0, 0, 0 };
+		std::array<float, 3> direction = { 0, 0, 0 };
+		float force_mag = 0;
+		float distance = diffusion_length;
+		float step_size = 0.05;
+		while (distance > 0) {
+			std::vector<int>* neighbors = cubes.find_nearest_bin(collision->position);
+			for (auto p : *neighbors) {
+				float dist2 = pow(atoms[p][0] - collision->position[0], 2) + pow(atoms[p][1] - collision->position[1], 2) + pow(atoms[p][2] - collision->position[2], 2);
+				float r = sqrt(dist2);
+				float r6 = pow(dist2, 3);
+				float r12 = pow(r6, 2);
+				force_mag = 3 * r * s6 / r6 - 4 * r * s12 / r12;
+				direction[0] += (collision->position[0] - atoms[p][0]) / r * force_mag;
+				direction[1] += (collision->position[1] - atoms[p][1]) / r * force_mag;
+				direction[2] += (collision->position[2] - atoms[p][2]) / r * force_mag;
+			}
+			force_mag = sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
+			if (force_mag != 0) {
+				collision->position[0] -= step_size * direction[0] / force_mag;
+				collision->position[1] -= step_size * direction[1] / force_mag;
+				collision->position[2] -= step_size * direction[2] / force_mag;
+			}
+			if (collision->position[0] < 0) {
+				collision->position[0] += L;
+			}
+			else if (collision->position[0] > L) {
+				collision->position[0] -= L;
+			}
+			if (collision->position[1] < 0) {
+				collision->position[1] += L;
+			}
+			else if (collision->position[1] > L) {
+				collision->position[1] -= L;
+			}
+			distance -= step_size;
+		}
+		
+		
+		/*if (diffusion_length > 0) {
 			scaled_position[0] = modulof(collision->position[0] * length_scale, L);
 			scaled_position[1] = modulof(collision->position[1] * length_scale, L);
 			scaled_position[2] = collision->position[2] * length_scale;
@@ -116,7 +167,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 				int minz = scaled_position[2] - it;
 			}
 
-		}
+		}*/
 		std::chrono::duration<double, std::milli> durad = std::chrono::high_resolution_clock::now() - startd;
 		timed += durad.count() / 1000;
 
@@ -133,6 +184,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		new_atom = { collision->position[0], collision->position[1], collision->position[2], (float)(*species)[sp], (*radii)[sp], fiber };
 		atoms.push_back(new_atom);
 		corridors.add_to_bins(collision->position, (*radii)[sp], n);
+		cubes.add_to_bins(n, collision->position);
 
 		// Periodic updates
 		if (n % (reps / update) == (reps / update) - 1) {

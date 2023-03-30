@@ -226,10 +226,12 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
             }
         }
 
-        // get top particle from bin and increment the iterator
-        if (iterators[bin] == bins_found[bin]->end()){
+        
+        if (bin == -1){
             break;
         }
+
+        // get top particle from bin and increment the iterator
         particle_priority p = *iterators[bin];
         iterators[bin]++;
 
