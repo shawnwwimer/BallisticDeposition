@@ -24,8 +24,8 @@ struct particle_priority
 struct collision_description
 {
 	std::array<float, 3> position;
-	uint32_t idx;
-	collision_description(float x, float y, float z, uint32_t idx) : idx{ idx }
+	int64_t idx;
+	collision_description(float x, float y, float z, int64_t idx) : idx{ idx }
 	{
 		position[0] = x;
 		position[1] = y;
@@ -46,6 +46,9 @@ private:
 	float tan_theta;
 	float sin_theta;
 	float cos_theta;
+
+	float max_sub;
+	float max_z;
 
 	float pi = 3.141592653;
 
@@ -80,7 +83,7 @@ private:
 	float calc_priority(std::array<float, 3> position)
 	{
 		float x1 = position[0] + position[2] * tan_theta;
-		float sub = (ceil(x1 / bin_size) * bin_size - x1) * sin_theta;
+		float sub = (L - x1) * sin_theta + max_sub * floor(position[2]/max_z);
 		float above = position[2] / cos_theta;
 		return sub + above;
 		//return position[2];
@@ -94,7 +97,9 @@ public:
 		tan_theta = tan(theta * pi / 180.0);
 		sin_theta = sin(theta * pi / 180.0);
 		cos_theta = cos(theta * pi / 180.0);
-		
+		max_sub = L * sin_theta;
+		max_z = L * tan((90 - theta) * pi / 180.0);
+
 		bins_on_side = (uint8_t)(L / bin_size);
 		bins_num = bins_on_side * bins_on_side;
 		/*
@@ -141,6 +146,10 @@ public:
 		}
 
 		return nullptr;
+	}
+
+	float get_particle_priority(uint32_t idx) {
+		return particles[idx]->priority;
 	}
 
 	collision_description* drop_particle(std::array<float, 3> position, float radius, std::vector<std::vector<float>> atoms);
