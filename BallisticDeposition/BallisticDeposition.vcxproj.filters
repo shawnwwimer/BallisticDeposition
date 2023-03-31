@@ -86,6 +86,9 @@
     <ClInclude Include="SlantedCorridors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CubicSpacePartition.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\lib\zlib\zlibstatic.lib">

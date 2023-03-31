@@ -1,6 +1,8 @@
 #include "SimulationContinuous.h"
 #include "cnpy.h"
 
+#define VERBOSE (false)
+
 int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, SimulationParametersFull* params, std::string& system)
 {
 	auto start = std::chrono::high_resolution_clock::now();
@@ -9,7 +11,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	SlantedCorridors corridors = SlantedCorridors(L, H, theta, bin_size);
 
 	CubicSpacePartition cubes = CubicSpacePartition(L, H, 2.0);
-	float s = 2 * (*radii)[0] / pow(2, 1.0 / 6.0);
+	float s = 2*(*radii)[0] / pow(2, 1.0 / 6.0);
 	float s6 = pow(s, 6);
 	float s12 = pow(s6, 2);
 
@@ -93,8 +95,8 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		auto startl = std::chrono::high_resolution_clock::now();
 
 		// Generate 
-		//dest = { dist(gen), dist(gen), 0 };//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
-		dest = { 0, 0, 0 };
+		dest = { dist(gen), dist(gen), 0 };//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
+		//dest = { 0, 0, 0 };
 
 		// Choose species
 		int sp = 0;
@@ -105,50 +107,94 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		std::chrono::duration<double, std::milli> dural = std::chrono::high_resolution_clock::now() - startl;
 		timel += dural.count() / 1000;
 
-		if (n == 48) {
-			for (auto p : atoms) {
-				std::cout << "(" << p[0] << ", " << p[2] << ")," << std::endl;
+		if (VERBOSE) {
+			std::cout << "Particles: " << std::endl;
+			for (int i = 0; i < atoms.size(); i++) {
+				auto p = atoms[i];
+				std::cout << "\t(" << p[0] << ", " << p[2] << ")," << std::endl;// " with priority " << corridors.get_particle_priority(i) << std::endl;
 			}
 		}
 
-		// TODO: DIFFUSION
+		if (VERBOSE) {
+			std::cout << "New particle collided at [" << collision->position[0] << ", " << collision->position[1] << ", " << collision->position[2] << "] ";
+			if (collision->idx > -1) {
+				std::cout << "with atom at [" << atoms[collision->idx][0] << ", " << atoms[collision->idx][1] << ", " << atoms[collision->idx][2] << "] " << std::endl;
+			}
+			else {
+				std::cout << std::endl;
+			}
+		}
+
+		// DIFFUSION
 		auto startd = std::chrono::high_resolution_clock::now();
 		//std::array<float, 3> force = { 0, 0, 0 };
 		std::array<float, 3> direction = { 0, 0, 0 };
 		float force_mag = 0;
 		float distance = diffusion_length;
-		float step_size = 0.05;
+		float step_size = 0.01;
 		while (distance > 0) {
 			std::vector<int>* neighbors = cubes.find_nearest_bin(collision->position);
+			if (VERBOSE) {
+				std::cout << "Found " << neighbors->size() << " neighbors";
+			}
 			for (auto p : *neighbors) {
 				float dist2 = pow(atoms[p][0] - collision->position[0], 2) + pow(atoms[p][1] - collision->position[1], 2) + pow(atoms[p][2] - collision->position[2], 2);
 				float r = sqrt(dist2);
 				float r6 = pow(dist2, 3);
 				float r12 = pow(r6, 2);
-				force_mag = 3 * r * s6 / r6 - 4 * r * s12 / r12;
+				force_mag =  (2/r) *  (2*s12 / r12 - s6 / r6);
 				direction[0] += (collision->position[0] - atoms[p][0]) / r * force_mag;
 				direction[1] += (collision->position[1] - atoms[p][1]) / r * force_mag;
 				direction[2] += (collision->position[2] - atoms[p][2]) / r * force_mag;
 			}
 			force_mag = sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
+
+			if (VERBOSE) {
+				std::cout << "\tForce: " << force_mag << "\tDirection: [" << direction[0] << ", " << direction[1] << ", " << direction[2] << "]; ";
+			}
+			
 			if (force_mag != 0) {
-				collision->position[0] -= step_size * direction[0] / force_mag;
-				collision->position[1] -= step_size * direction[1] / force_mag;
-				collision->position[2] -= step_size * direction[2] / force_mag;
+				if (force_mag < 1) {
+					collision->position[0] += step_size * direction[0];
+					collision->position[1] += step_size * direction[1];
+					collision->position[2] += step_size * direction[2];
+					if (VERBOSE) {
+						std::cout << "Traveled " << step_size * force_mag << " nm ";
+					}
+				}
+				else {
+					collision->position[0] += step_size * direction[0] / force_mag;
+					collision->position[1] += step_size * direction[1] / force_mag;
+					collision->position[2] += step_size * direction[2] / force_mag;
+					if (VERBOSE) {
+						std::cout << "Traveled " << step_size << " nm ";
+					}
+				}
+				if (collision->position[0] < 0) {
+					collision->position[0] += L;
+				}
+				else if (collision->position[0] > L) {
+					collision->position[0] -= L;
+				}
+				if (collision->position[1] < 0) {
+					collision->position[1] += L;
+				}
+				else if (collision->position[1] > L) {
+					collision->position[1] -= L;
+				}
+				if (VERBOSE) {
+					std::cout << "to [" << collision->position[0] << ", " << collision->position[1] << ", " << collision->position[2] << "] " << std::endl;
+				}
 			}
-			if (collision->position[0] < 0) {
-				collision->position[0] += L;
-			}
-			else if (collision->position[0] > L) {
-				collision->position[0] -= L;
-			}
-			if (collision->position[1] < 0) {
-				collision->position[1] += L;
-			}
-			else if (collision->position[1] > L) {
-				collision->position[1] -= L;
+			else if (VERBOSE) {
+				std::cout << std::endl;
 			}
 			distance -= step_size;
+		}
+		
+
+		if (VERBOSE) {
+			std::cout << "Particle stuck at [" << collision->position[0] << ", " << collision->position[1] << ", " << collision->position[2] << "] " << std::endl;
 		}
 		
 		

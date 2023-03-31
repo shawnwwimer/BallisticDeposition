@@ -44,11 +44,12 @@ private:
 	float H;
 	float theta;
 	float tan_theta;
+	float tan_90theta;
 	float sin_theta;
 	float cos_theta;
 
 	float max_sub;
-	float max_z;
+	float max_z0;
 
 	float pi = 3.141592653;
 
@@ -83,10 +84,11 @@ private:
 	float calc_priority(std::array<float, 3> position)
 	{
 		float x1 = position[0] + position[2] * tan_theta;
-		float sub = (L - x1) * sin_theta + max_sub * floor(position[2]/max_z);
+		float sub = fmod(L - x1, L) * sin_theta;
+		//float sub = (ceil(x1 / bin_size) * bin_size - x1) * sin_theta + max_sub * floor((position[2] + position[0] * tan_90theta) / max_z0);
 		float above = position[2] / cos_theta;
-		return sub + above;
-		//return position[2];
+		//return sub + above;
+		return position[2];
 	}
 
 
@@ -97,8 +99,9 @@ public:
 		tan_theta = tan(theta * pi / 180.0);
 		sin_theta = sin(theta * pi / 180.0);
 		cos_theta = cos(theta * pi / 180.0);
+		tan_90theta = tan((90 - theta) * pi / 180.0);
 		max_sub = L * sin_theta;
-		max_z = L * tan((90 - theta) * pi / 180.0);
+		max_z0 = L * tan_90theta;
 
 		bins_on_side = (uint8_t)(L / bin_size);
 		bins_num = bins_on_side * bins_on_side;

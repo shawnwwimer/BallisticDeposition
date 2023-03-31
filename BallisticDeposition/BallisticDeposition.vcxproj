@@ -163,6 +163,7 @@
     <ClInclude Include="..\lib\minizip\zip.h" />
     <ClInclude Include="..\lib\zlib\zconf.h" />
     <ClInclude Include="..\lib\zlib\zlib.h" />
+    <ClInclude Include="CubicSpacePartition.h" />
     <ClInclude Include="math_utils.h" />
     <ClInclude Include="Simulation3D.h" />
     <ClInclude Include="SimulationContinuous.h" />

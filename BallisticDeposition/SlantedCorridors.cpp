@@ -220,9 +220,9 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3> posi
         float max = 0;
         int bin = -1;
         for (int j = 0; j < bins_found_num; j++) {
-            if (iterators[j] != bins_found[j]->end() && iterators[j]->priority > max) {
+            if (iterators[j] != bins_found[j]->end() && atoms[(*iterators[j]).idx][2] > max) {
                 bin = j;
-                max = iterators[j]->priority;
+                max = atoms[(*iterators[j]).idx][2];
             }
         }
 

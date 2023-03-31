@@ -31,7 +31,6 @@ public:
 		int xidx = round(nx);
 		int yidx = round(ny);
 		int zidx = round(nz);
-		bins[zidx * bins_on_side * bins_on_side + yidx * bins_on_side + xidx].push_back(idx); // add nearest
 
 		int xmod = xidx < nx ? 1 : -1;
 		int ymod = yidx < ny ? 1 : -1;

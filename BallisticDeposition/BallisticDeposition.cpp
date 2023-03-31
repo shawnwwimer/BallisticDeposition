@@ -8,25 +8,50 @@
 
 int main()
 {
-    bool discrete = false;
+    bool cts_simulation = true;
+    if (cts_simulation) {
+        float theta = 85;
+        float L = 48;
+        float H = 32;
+        uint32_t reps = 4096*16;
+        uint8_t bin_size = 4;
+        uint32_t seed = 0;
+        float diffusion_length = 0.5;
+        std::vector<int8_t> species = { 1 };
+        std::vector<float> radii = { 0.15 };
+        std::vector<std::vector<float>> weights = { {{1, .1}, {.1, 1}} };
+        std::vector<std::vector<float>> inputGrid = { {0} };
+        SimulationParametersFull params;
+        std::string system = "Si";
 
-    if (discrete) {
+        obliqueDepositionContinuous(theta, L, H, reps, bin_size, seed, diffusion_length, 10, &species, &radii, &weights, inputGrid, &params, system);
+    }
+    else {
         float theta = 85;
         uint16_t L = 768;
-        uint16_t H = 384;
-        uint32_t reps = 8192 * 32 * 8 * 4;// * 2;
+        uint16_t H = 800;
+        uint32_t reps = 8192 * 32 * 8 * 4 * 2;
         float phi = 0;
-        float turns = 0;
-        uint32_t seed = 3286398647;
+        float turns = 2;
+        uint32_t seed = 0;
         uint16_t diffusion_steps = 5;
-        std::vector<int8_t> species = { 1 };
-        std::vector<float> spread = { 0.000001, 0.000001 };
-        std::vector<std::vector<float>> weights = { { {1, .1}, { .1, 1 }} };
+        std::vector<int8_t> sSi = { 1 };
+        std::vector<int8_t> sAg = { 2 };
+        std::vector<int8_t> sZrO2 = { 3, 4, 4 };
+        std::vector<float> spread = { 1e-6, 1e-6 };
+        std::vector<float> spread1 = { 2, 2 };
+        std::vector<float> spread2 = { 4, 4 };
+        std::vector<std::vector<float>> Si = { { {1, 0}, { 0, 1 }} };
+        std::vector<std::vector<float>> SiAg = { {1, 0, 0}, {0, 1, 0}, {0.2, -.3, 3} };
+        std::vector<std::vector<float>> ZrO2 = { {1, 0, 0, 0, 0}, {0, 1, 0, 0, 0}, {0.2, -0.3, 3, -.3, -.3}, {0, 0, 0, 1, 5}, {0, 0, 0, 5, -0.3} }; // 0/Si/Ag/Zr/O
+
         uint32_t stepper_resolution = 0;
         SimulationParametersFull params;
         int16_t** outGrid = (int16_t**)malloc(sizeof(int16_t*));
         *outGrid = nullptr;
-        std::string system = "Si";
+        std::string ySi = "Si";
+        std::string ySiAg = "Si_Ag";
+        std::string yZrO2 = "ZrO2";
         int16_t* inputGrid = (int16_t*)malloc(sizeof(int16_t) * L * L * 4);
         uint32_t count = 0;
         for (uint32_t i = 0; i < L; i++) {
@@ -40,30 +65,13 @@ int main()
         }
 
         uint32_t inputGridPoints = count;
-        for (int n = 0; n < 1; n++) {
-            std::cout << "Starting simulation " << n + 1 << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, diffusion_steps, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, stepper_resolution, &params, system, true, false);
-            params.clearLayers();
-            phi += 15;
-        }
-    }
-    else {
-        float theta = 85;
-        float L = 32;
-        float H = 32;
-        uint32_t reps = 8192;
-        uint8_t bin_size = 8;
-        uint32_t seed = 3286398647;
-        float diffusion_length = 0;
-        std::vector<int8_t> species = { 1 };
-        std::vector<float> radii = { 0.15 };
-        std::vector<std::vector<float>> weights = { { {1, .1}, { .1, 1 }} };
-        std::vector<std::vector<float>> inputGrid = { {0} };
-        SimulationParametersFull params;
-        std::string system = "Si";
+        uint32_t points = 0;
+        std::vector<float> thetas = { 80, 82, 84, 85, 86, 88, 89 };
+        std::vector<int> Ds = { 0, 1, 2, 5, 10, 15, 20, 25, 30, 50, 75, 100 };
+        float spreads[6] = { 1e-6, 1.f, 2.f, 3.f, 4.f, 5.f };
 
-        obliqueDepositionContinuous(theta, L, H, reps, bin_size, seed, diffusion_length, &species, &radii, &weights, inputGrid, &params, system);
     }
+
     return 0;
 }
 
