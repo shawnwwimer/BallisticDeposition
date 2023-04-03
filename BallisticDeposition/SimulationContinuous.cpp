@@ -118,6 +118,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	int steps = round(length_scale * diffusion_length);
 	int rads = round(length_scale * 2 * (*radii)[0]);
 	float scaled_position[3] = { 0 };
+	std::array<float, 3> direction = { 0, 0, 0 };
 
 	// Create random number generator
 	if (seed == 0) {
@@ -180,11 +181,11 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		// DIFFUSION
 		auto startd = std::chrono::high_resolution_clock::now();
 		//std::array<float, 3> force = { 0, 0, 0 };
-		std::array<float, 3> direction = { 0, 0, 0 };
 		float force_mag = 0;
 		float distance = diffusion_length;
 		float step_size = 0.01;
 		while (distance > 0) {
+			direction = { 0, 0, 0 };
 			std::vector<int>* neighbors = cubes.find_nearest_bin(collision->position);
 			if (VERBOSE) {
 				std::cout << "Found " << neighbors->size() << " neighbors";
@@ -198,6 +199,13 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 				direction[0] += (collision->position[0] - atoms[p][0]) / r * force_mag;
 				direction[1] += (collision->position[1] - atoms[p][1]) / r * force_mag;
 				direction[2] += (collision->position[2] - atoms[p][2]) / r * force_mag;
+			}
+			if (collision->position[2] < 2) {
+				float r = collision->position[2];
+				float r6 = pow(r, 6);
+				float r12 = pow(r6, 2);
+				force_mag = (2 / r) * (2 * s12 / r12 - s6 / r6);
+				direction[2] += force_mag;
 			}
 			force_mag = sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
 
