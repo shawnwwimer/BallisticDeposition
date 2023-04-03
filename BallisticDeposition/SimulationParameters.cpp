@@ -118,3 +118,91 @@ void SimulationParametersFull::serialize() {
 	}
 	serialization += "}";
 }
+
+
+ContinuousSimulationParametersFull::~ContinuousSimulationParametersFull()
+{
+	clearLayers();
+}
+
+void ContinuousSimulationParametersFull::clearLayers()
+{
+	int num_layers = number_of_layers;
+	for (uint8_t i = 0; i < num_layers; i++)
+	{
+		deposited -= parameters[i]->repetitions;
+		delete(parameters[i]);
+		number_of_layers -= 1;
+	}
+}
+
+void ContinuousSimulationParametersFull::addLayer(ContinuousSimulationParameters* layer)
+{
+	parameters[number_of_layers] = layer;
+	number_of_layers += 1;
+	deposited += layer->repetitions;
+}
+
+void ContinuousSimulationParametersFull::serialize() {
+	// Stack parameters
+	serialization = "{\"Layers\": " + std::to_string(number_of_layers) + ", \"Total points\": " + std::to_string(deposited) + ", ";
+
+	// Go through each parameter
+	for (int i = 0; i < number_of_layers; i++) {
+		ContinuousSimulationParameters* p = parameters[i];
+		std::string theta_str = std::to_string(p->theta);
+		theta_str.erase(theta_str.find_last_not_of('0') + 1, std::string::npos);
+		theta_str.erase(theta_str.find_last_not_of('.') + 1, std::string::npos);
+		std::string diff_str = std::to_string(p->diffusion_length);
+		diff_str.erase(diff_str.find_last_not_of('0') + 1, std::string::npos);
+		diff_str.erase(diff_str.find_last_not_of('.') + 1, std::string::npos);
+		serialization += "\"" + std::to_string(i + 1) + "\": {";
+		serialization += "\"Repetitions\": " + std::to_string(p->repetitions) + ", ";
+		serialization += "\"Parameters\": {";
+		//serialization += "\"System\": " + p->system + ", ";
+		serialization += "\"L\": " + std::to_string(p->length) + ", ";
+		serialization += "\"W\": " + std::to_string(p->width) + ", ";
+		serialization += "\"theta\": " + theta_str + ", ";
+		serialization += "\"H\": " + std::to_string(p->height) + ", ";
+		serialization += "\"D\": " + diff_str + ", ";
+		serialization += "\"species\": [";
+		for (int s = 0; s < p->species->size(); s++) {
+			std::string str = std::to_string((*(p->species))[s]);
+			str.erase(str.find_last_not_of('0') + 1, std::string::npos);
+			str.erase(str.find_last_not_of('.') + 1, std::string::npos);
+			serialization += str;
+			if (s < p->species->size() - 1) {
+				serialization += ", ";
+			}
+			else {
+				serialization += "], ";
+			}
+		}
+		serialization += "\"radii\": [";
+		for (int r = 0; r < p->radii->size(); r++) {
+			std::string str = std::to_string((*(p->radii))[r]);
+			str.erase(str.find_last_not_of('0') + 1, std::string::npos);
+			str.erase(str.find_last_not_of('.') + 1, std::string::npos);
+			serialization += str;
+			if (r < p->radii->size() - 1) {
+				serialization += ", ";
+			}
+			else {
+				serialization += "], ";
+			}
+		}
+		serialization += "\"bin size\": " + std::to_string(p->bin_size) + ", ";
+		std::string cube_str = std::to_string(p->cube_size);
+		cube_str.erase(cube_str.find_last_not_of('0') + 1, std::string::npos);
+		cube_str.erase(cube_str.find_last_not_of('.') + 1, std::string::npos);
+		serialization += "\"cube size\": " + cube_str + ", ";
+		serialization += "\"repetition\": " + std::to_string(p->repetitions) + ", ";
+		serialization += "\"Seed\": " + std::to_string(p->seed) + ", ";
+		serialization += "\"Time taken\": " + std::to_string(p->time_taken) + ", ";
+		serialization += "\"Time finished\": " + std::to_string(p->time_finished) + "}}";
+		if (i < number_of_layers - 1) {
+			serialization += ", ";
+		}
+	}
+	serialization += "}";
+}

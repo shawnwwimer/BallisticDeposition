@@ -1,9 +1,61 @@
 #include "SimulationContinuous.h"
 #include "cnpy.h"
+#include "zip.h"
 
+#define COMPRESSION_LEVEL (Z_DEFAULT_COMPRESSION)
 #define VERBOSE (false)
 
-int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, SimulationParametersFull* params, std::string& system)
+int writeFileToZipCTS(const char* zipname, const char* filename)
+{
+	int error = ZIP_ERRNO;
+
+	zipFile zf = zipOpen64(zipname, APPEND_STATUS_ADDINZIP);
+
+	// Check for a valid zipfile
+	if (zf == NULL) {
+		return ZIP_BADZIPFILE;
+	}
+
+	// Attempt to open the file
+	std::fstream file(filename, std::ios::binary | std::ios::in);
+	if (file.is_open()) {
+		// Get size of file
+		file.seekg(0, std::ios::end);
+		size_t size = file.tellg();
+		file.seekg(0, std::ios::beg);
+
+		// Read in file 
+		// TODO: might want to chunk it since some files may be large
+		std::vector<char> buffer(size);
+		if (size == 0 || file.read(&buffer[0], size)) {
+			// Initialize the parameters for the local header
+			zip_fileinfo zi = { 0 };
+
+			// Open it inside the zip for writing
+			if (Z_OK == zipOpenNewFileInZip64(zf, filename, &zi, NULL, 0, NULL, 0, NULL, Z_DEFLATED, COMPRESSION_LEVEL, 1)) {
+				// Write in zip
+				if (zipWriteInFileInZip(zf, size == 0 ? "" : &buffer[0], size)) {
+					error = ZIP_ERRNO;
+				}
+
+				// Close it inside zip
+				if (zipCloseFileInZip(zf)) {
+					error = ZIP_OK;
+				}
+				// Close file
+				file.close();
+			}
+		}
+	}
+
+	// Try to close zip
+	if (zipClose(zf, NULL)) {
+		return ZIP_ERRNO;
+	}
+	return error;
+}
+
+int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system)
 {
 	auto start = std::chrono::high_resolution_clock::now();
 	std::vector<std::vector<float>> atoms;
@@ -247,6 +299,38 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	std::chrono::system_clock::time_point epoch = std::chrono::system_clock::now();
 	uint32_t epoch_time = epoch.time_since_epoch().count() * std::chrono::system_clock::period::num / std::chrono::system_clock::period::den;
 
+	// Update object for parameters
+	ContinuousSimulationParameters * layer_params = new ContinuousSimulationParameters();
+	layer_params->length = L;
+	layer_params->width = L;
+	layer_params->height = H;
+	layer_params->theta = theta;
+	layer_params->species = species;
+	layer_params->radii = radii;
+	layer_params->diffusion_length = diffusion_length;
+	layer_params->repetitions = reps;
+	layer_params->system = system;
+	layer_params->seed = seed;
+	layer_params->bin_size = bin_size;
+	layer_params->cube_size = 2.0f;
+	layer_params->time_taken = time;
+	layer_params->time_finished = epoch_time;
+	params->addLayer(layer_params);
+	params->serialize();
+
+	// Create filename
+	std::string len_str = std::to_string(L);
+	len_str.erase(len_str.find_last_not_of('0') + 1, std::string::npos);
+	len_str.erase(len_str.find_last_not_of('.') + 1, std::string::npos);
+	std::string theta_str = std::to_string(theta);
+	theta_str.erase(theta_str.find_last_not_of('0') + 1, std::string::npos);
+	theta_str.erase(theta_str.find_last_not_of('.') + 1, std::string::npos);
+	std::string diff_str = std::to_string(diffusion_length);
+	diff_str.erase(diff_str.find_last_not_of('0') + 1, std::string::npos);
+	diff_str.erase(diff_str.find_last_not_of('.') + 1, std::string::npos);
+	std::string filename = "structures/cts/STF_" + system + "_L" + len_str + "_Th" + theta_str + "_D" + diff_str + "_N" + std::to_string(params->deposited) + "_" + std::to_string(epoch_time);
+
+	// Save objects
 	float* outGrid = (float*)malloc(sizeof(float) * reps * 6);
 	if (outGrid != NULL) {
 		for (int j = 0; j < atoms.size(); j++) {
@@ -254,9 +338,26 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 				outGrid[j * 6 + i] = atoms[j][i];
 			}
 		}
-		cnpy::npy_save("structures/cts/grid.npy", outGrid, { reps, 6 });
+		cnpy::npy_save("grid.npy", outGrid, { reps, 6 });
 		free(outGrid);
 	}
+	std::ofstream json_file;
+	json_file.open("params.json");
+	json_file << params->serialization;
+	json_file.close();
+
+	// Combine the files into one zip/npz file
+	zipFile zf = zipOpen64((filename + ".simc").c_str(), 0);
+	zipClose(zf, NULL);
+	int err = writeFileToZipCTS((filename + ".simc").c_str(), "grid.npy");
+	//err = writeFileToZip((filename + ".sim").c_str(), "structures/cts/diff.npy");
+	err = writeFileToZipCTS((filename + ".simc").c_str(), "params.json");
+
+	// Remove the individual files
+	// TODO: combine the writeFileToZip function and the writing of npy files so clean up isn't necessary
+	std::remove("grid.npy");
+	//std::remove("structures/cts/diff.npy");
+	std::remove("params.json");
 
 	// Print the timing
 	std::cout << reps << " reps completed in " << time << " seconds; \n" << reps / time << " reps per second." << std::endl;

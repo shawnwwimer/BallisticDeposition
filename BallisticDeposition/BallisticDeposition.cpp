@@ -11,20 +11,26 @@ int main()
     bool cts_simulation = true;
     if (cts_simulation) {
         float theta = 85;
-        float L = 128;
+        float L = 64;
         float H = 128;
-        uint32_t reps = 8192*16*8;
+        uint32_t reps = 8192*128/2;
         uint8_t bin_size = 4;
         uint32_t seed = 0;
-        float diffusion_length = 0.5;
+        float diffusion_length = 0;
         std::vector<int8_t> species = { 1 };
-        std::vector<float> radii = { 0.15 };
+        std::vector<float> radii = { 0.111 };
         std::vector<std::vector<float>> weights = { {{1, .1}, {.1, 1}} };
         std::vector<std::vector<float>> inputGrid = { {0} };
-        SimulationParametersFull params;
+        ContinuousSimulationParametersFull params;
         std::string system = "Si";
 
-        obliqueDepositionContinuous(theta, L, H, reps, bin_size, seed, diffusion_length, 10, &species, &radii, &weights, inputGrid, &params, system);
+        std::vector<float> thetas = { 85, 80, 82, 84, 86, 88, 89 };
+        for (float t : thetas) {
+            std::cout << "Deposition at " << t << std::endl;
+            obliqueDepositionContinuous(t, L, H, reps, bin_size, seed, diffusion_length, 10, &species, &radii, &weights, inputGrid, &params, system);
+            params.clearLayers();
+        }
+        
     }
     else {
         float theta = 85;
@@ -375,6 +381,8 @@ int main()
         }
         */
     }
+
+    return 0;
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
