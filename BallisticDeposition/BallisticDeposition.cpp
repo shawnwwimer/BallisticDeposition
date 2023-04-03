@@ -11,9 +11,9 @@ int main()
     bool cts_simulation = true;
     if (cts_simulation) {
         float theta = 85;
-        float L = 48;
-        float H = 32;
-        uint32_t reps = 4096*16;
+        float L = 128;
+        float H = 128;
+        uint32_t reps = 8192*16*8;
         uint8_t bin_size = 4;
         uint32_t seed = 0;
         float diffusion_length = 0.5;

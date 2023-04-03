@@ -16,10 +16,10 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	float s12 = pow(s6, 2);
 
 	// Set up potentials for diffusion
-	float* potentials = (float*)malloc(sizeof(float) * L * length_scale * L * length_scale * H * length_scale * 4);
+	/*float* potentials = (float*)malloc(sizeof(float) * L * length_scale * L * length_scale * H * length_scale * 4);
 	for (int i = 0; i < L * L * H * length_scale * length_scale * length_scale * 4; i++) {
 		potentials[i] = 0;
-	}
+	}*/
 
 	float A = 1;
 	float R = 1;
@@ -102,7 +102,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		int sp = 0;
 
 		// Drop particle
-		collision_description* collision = corridors.drop_particle(dest, (*radii)[sp], atoms);
+		collision_description* collision = corridors.drop_particle(&dest, (*radii)[sp], &atoms);
 
 		std::chrono::duration<double, std::milli> dural = std::chrono::high_resolution_clock::now() - startl;
 		timel += dural.count() / 1000;
@@ -229,7 +229,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		// Add the new atom
 		new_atom = { collision->position[0], collision->position[1], collision->position[2], (float)(*species)[sp], (*radii)[sp], fiber };
 		atoms.push_back(new_atom);
-		corridors.add_to_bins(collision->position, (*radii)[sp], n);
+		corridors.add_to_bins(&collision->position, (*radii)[sp], n);
 		cubes.add_to_bins(n, collision->position);
 
 		// Periodic updates
@@ -263,6 +263,6 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	std::cout << "Line finding and traversal were " << timel << " seconds of that time." << std::endl;
 	std::cout << "Diffusion was " << timed << " seconds of that time." << std::endl;
 
-	free(potentials);
+	//free(potentials);
 	return reps;
 }
