@@ -24,7 +24,7 @@ uint16_t Bresenham3D(uint16_t* src, uint16_t* dest, uint16_t* points);
 
 uint16_t* traversePathCalculated(uint16_t* points, uint16_t points_len, uint16_t* dest, uint16_t* collision, int8_t* grid, uint16_t L, uint16_t H);
 
-uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, int8_t* grid, uint16_t L, uint16_t H);
+uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, int8_t* grid, uint16_t L, uint16_t H, bool hard_collision = true, Surface3D* surface = nullptr);
 
 uint32_t denseToSparse(int8_t* grid, int16_t** sparse, uint16_t L, uint16_t H);
 uint32_t denseToSparse(uint32_t* grid, uint32_t** sparse, uint16_t L, uint16_t H);

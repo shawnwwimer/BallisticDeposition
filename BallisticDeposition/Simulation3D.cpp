@@ -156,7 +156,7 @@ uint16_t* traversePathCalculated(uint16_t* points, uint16_t points_len, uint16_t
 	return nullptr;
 }
 
-uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, int8_t* grid, uint16_t L, uint16_t H) {
+uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, int8_t* grid, uint16_t L, uint16_t H, bool hard_collision, Surface3D* surface) {
 	// Distance
 	int32_t d[3] = { abs(dest[0] - src[0]), abs(dest[1] - src[1]), abs(dest[2] - src[2]) };
 
@@ -203,12 +203,23 @@ uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, 
 		int xidx = (x1 % L + L) % L;
 		int yidx = (y1 % L + L) % L;
 		while (x1 != x2) {
-			if (grid[z1 * L * L + yidx * L + xidx] > 0) {
-				collision[0] = (xlast % L + L) % L;
-				collision[1] = (ylast % L + L) % L;
-				collision[2] = zlast;
-				return i;
+			if (hard_collision) {
+				if (grid[z1 * L * L + yidx * L + xidx] > 0) {
+					collision[0] = (xlast % L + L) % L;
+					collision[1] = (ylast % L + L) % L;
+					collision[2] = zlast;
+					return i;
+				}
 			}
+			else {
+				if (surface->number_of_neighbors(xidx, yidx, z1) > 0) {
+					collision[0] = (xidx % L + L) % L;
+					collision[1] = (yidx % L + L) % L;
+					collision[2] = z1;
+					return i;
+				}
+			}
+			
 			xlast = x1;
 			ylast = y1;
 			zlast = z1;
@@ -253,12 +264,23 @@ uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, 
 		int xidx = (x1 % L + L) % L;
 		int yidx = (y1 % L + L) % L;
 		while (y1 != y2) {
-			if (grid[z1 * L * L + yidx * L + xidx] > 0) {
-				collision[0] = (xlast % L + L) % L;
-				collision[1] = (ylast % L + L) % L;
-				collision[2] = zlast;
-				return i;
+			if (hard_collision) {
+				if (grid[z1 * L * L + yidx * L + xidx] > 0) {
+					collision[0] = (xlast % L + L) % L;
+					collision[1] = (ylast % L + L) % L;
+					collision[2] = zlast;
+					return i;
+				}
 			}
+			else {
+				if (surface->number_of_neighbors(xidx, yidx, z1) > 0) {
+					collision[0] = (xidx % L + L) % L;
+					collision[1] = (yidx % L + L) % L;
+					collision[2] = z1;
+					return i;
+				}
+			}
+			
 			xlast = x1;
 			ylast = y1;
 			zlast = z1;
@@ -302,12 +324,23 @@ uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, 
 		int xidx = (x1 % L + L) % L;
 		int yidx = (y1 % L + L) % L;
 		while (z1 != z2) {
-			if (z1 < H && grid[z1 * L * L + yidx * L + xidx] > 0) {
-				collision[0] = (xlast % L + L) % L;
-				collision[1] = (ylast % L + L) % L;
-				collision[2] = zlast;
-				return i;
+			if (hard_collision) {
+				if (z1 < H && grid[z1 * L * L + yidx * L + xidx] > 0) {
+					collision[0] = (xlast % L + L) % L;
+					collision[1] = (ylast % L + L) % L;
+					collision[2] = zlast;
+					return i;
+				}
 			}
+			else {
+				if (surface->number_of_neighbors(xidx, yidx, z1) > 0) {
+					collision[0] = (xidx % L + L) % L;
+					collision[1] = (yidx % L + L) % L;
+					collision[2] = z1;
+					return i;
+				}
+			}
+			
 			xlast = x1;
 			ylast = y1;
 			zlast = z1;
@@ -648,7 +681,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 		src[2] = (maxh + v_offset);
 
 		// Send particle along
-		traversePathRealTime(src, dest, collision, grid, L, H);
+		traversePathRealTime(src, dest, collision, grid, L, H, false, surface);
 
 		std::chrono::duration<double, std::milli> dural = std::chrono::high_resolution_clock::now() - startl;
 		timel += dural.count()/1000;

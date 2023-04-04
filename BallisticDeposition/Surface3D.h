@@ -4,6 +4,8 @@
 #include <math.h>
 #include <iostream>
 
+#include "math_utils.h"
+
 
 
 class Surface3D
@@ -39,6 +41,15 @@ public:
 	uint8_t getNearestNeighbors(uint16_t* center);
 	uint16_t* getAdjacentVacancy(uint16_t* center, int8_t sp);
 	double calculateLocalEnergy(uint16_t* center, int8_t sp);
+	uint8_t number_of_neighbors(uint16_t* center) {
+		uint32_t idx = flat_index(center, L, L);
+		return adjacency[idx];
+	}
+
+	uint8_t number_of_neighbors(uint16_t x, uint16_t y, uint16_t z) {
+		uint32_t idx = z * L * L + y * L + x;
+		return adjacency[idx];
+	}
 
 
 };

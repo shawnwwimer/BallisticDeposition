@@ -150,6 +150,7 @@
     <ClCompile Include="..\lib\minizip\unzip.c" />
     <ClCompile Include="..\lib\minizip\zip.c" />
     <ClCompile Include="BallisticDeposition.cpp" />
+    <ClCompile Include="math_utils.cpp" />
     <ClCompile Include="Simulation3D.cpp" />
     <ClCompile Include="SimulationContinuous.cpp" />
     <ClCompile Include="SimulationParameters.cpp" />

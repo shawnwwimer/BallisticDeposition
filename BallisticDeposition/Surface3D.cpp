@@ -1,5 +1,5 @@
 #include "Surface3D.h"
-#include "math_utils.h"
+
 
 Surface3D::Surface3D(uint16_t length, uint16_t height, uint16_t width, int8_t* grid, std::vector<int8_t>* species, std::vector<std::vector<float>>* weights, uint32_t seed)
 {
@@ -90,7 +90,7 @@ uint8_t Surface3D::add_directly(uint16_t* center, int8_t sp)
 				int32_t kk = center[2] + k;
 
 				// Don't bother with itself or out of z-range
-				if ((i == 0 && j == 0 && k == 0) || kk < 0 || kk > H - 1) {
+				if ((i == 0 && j == 0 && k == 0) || kk < 0 || kk > H - 1) {// || (i != 0 && j != 0 && k != 0)) {
 					continue;
 				}
 				point[2] = (uint16_t)kk;
@@ -139,7 +139,7 @@ uint8_t Surface3D::add(uint16_t* center, int8_t sp)
 				int32_t kk = center[2] + k;
 
 				// Don't bother with itself or out of z-range
-				if ((i == 0 && j == 0 && k == 0) || kk < 0 || kk > H - 1) {
+				if ((i == 0 && j == 0 && k == 0) || kk < 0 || kk > H - 1) {// || ( i != 0 && j != 0 && k != 0)) {
 					continue;
 				}
 				point[2] = (uint16_t)kk;
