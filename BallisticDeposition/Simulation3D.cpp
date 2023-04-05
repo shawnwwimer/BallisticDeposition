@@ -156,7 +156,7 @@ uint16_t* traversePathCalculated(uint16_t* points, uint16_t points_len, uint16_t
 	return nullptr;
 }
 
-uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, int8_t* grid, uint16_t L, uint16_t H, bool hard_collision, Surface3D* surface) {
+uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, int8_t* grid, uint16_t L, uint16_t H, int nearest_neighbor, Surface3D* surface) {
 	// Distance
 	int32_t d[3] = { abs(dest[0] - src[0]), abs(dest[1] - src[1]), abs(dest[2] - src[2]) };
 
@@ -203,15 +203,13 @@ uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, 
 		int xidx = (x1 % L + L) % L;
 		int yidx = (y1 % L + L) % L;
 		while (x1 != x2) {
-			if (hard_collision) {
-				if (grid[z1 * L * L + yidx * L + xidx] > 0) {
-					collision[0] = (xlast % L + L) % L;
-					collision[1] = (ylast % L + L) % L;
-					collision[2] = zlast;
-					return i;
-				}
+			if (grid[z1 * L * L + yidx * L + xidx] > 0) {
+				collision[0] = (xlast % L + L) % L;
+				collision[1] = (ylast % L + L) % L;
+				collision[2] = zlast;
+				return i;
 			}
-			else {
+			if (nearest_neighbor > 0) {
 				if (surface->number_of_neighbors(xidx, yidx, z1) > 0) {
 					collision[0] = (xidx % L + L) % L;
 					collision[1] = (yidx % L + L) % L;
@@ -264,15 +262,13 @@ uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, 
 		int xidx = (x1 % L + L) % L;
 		int yidx = (y1 % L + L) % L;
 		while (y1 != y2) {
-			if (hard_collision) {
-				if (grid[z1 * L * L + yidx * L + xidx] > 0) {
-					collision[0] = (xlast % L + L) % L;
-					collision[1] = (ylast % L + L) % L;
-					collision[2] = zlast;
-					return i;
-				}
+			if (grid[z1 * L * L + yidx * L + xidx] > 0) {
+				collision[0] = (xlast % L + L) % L;
+				collision[1] = (ylast % L + L) % L;
+				collision[2] = zlast;
+				return i;
 			}
-			else {
+			if (nearest_neighbor > 0) {
 				if (surface->number_of_neighbors(xidx, yidx, z1) > 0) {
 					collision[0] = (xidx % L + L) % L;
 					collision[1] = (yidx % L + L) % L;
@@ -324,15 +320,13 @@ uint16_t traversePathRealTime(int32_t* src, int32_t* dest, uint16_t* collision, 
 		int xidx = (x1 % L + L) % L;
 		int yidx = (y1 % L + L) % L;
 		while (z1 != z2) {
-			if (hard_collision) {
-				if (z1 < H && grid[z1 * L * L + yidx * L + xidx] > 0) {
-					collision[0] = (xlast % L + L) % L;
-					collision[1] = (ylast % L + L) % L;
-					collision[2] = zlast;
-					return i;
-				}
+			if (grid[z1 * L * L + yidx * L + xidx] > 0) {
+				collision[0] = (xlast % L + L) % L;
+				collision[1] = (ylast % L + L) % L;
+				collision[2] = zlast;
+				return i;
 			}
-			else {
+			if (nearest_neighbor > 0) {
 				if (surface->number_of_neighbors(xidx, yidx, z1) > 0) {
 					collision[0] = (xidx % L + L) % L;
 					collision[1] = (yidx % L + L) % L;
@@ -525,7 +519,7 @@ int writeFileToZip(const char* zipname, const char* filename)
 	return error;
 }
 
-int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float phi, float turns, uint32_t seed, uint16_t diffusion_steps, std::vector<int8_t>* species, std::vector<float>* spread, std::vector<std::vector<float>>* weights, int16_t* inputGrid, uint32_t inputGridPoints, int16_t** outGrid, int phi_num, float phi_deg, uint32_t stepper_resolution, SimulationParametersFull* params, std::string& system, bool phiSweep, bool thetaSweep, float thetaEnd, Acceleration acc) {
+int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float phi, float turns, uint32_t seed, uint16_t diffusion_steps, std::vector<int8_t>* species, std::vector<float>* spread, std::vector<std::vector<float>>* weights, int16_t* inputGrid, uint32_t inputGridPoints, int16_t** outGrid, int phi_num, float phi_deg, uint32_t stepper_resolution, SimulationParametersFull* params, std::string& system, bool phiSweep, bool thetaSweep, float thetaEnd, Acceleration acc, int nearest_neighbor) {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	// Magic numbers
@@ -580,7 +574,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	int swap_direction = 0;
 
 	// Create surface
-	Surface3D * surface = new Surface3D(L, H, L, grid, species, weights, seed);
+	Surface3D * surface = new Surface3D(L, H, L, grid, species, weights, seed, nearest_neighbor);
 
 	// Create random number generator
 	if (seed == 0) {
@@ -681,7 +675,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 		src[2] = (maxh + v_offset);
 
 		// Send particle along
-		traversePathRealTime(src, dest, collision, grid, L, H, false, surface);
+		traversePathRealTime(src, dest, collision, grid, L, H, nearest_neighbor, surface);
 
 		std::chrono::duration<double, std::milli> dural = std::chrono::high_resolution_clock::now() - startl;
 		timel += dural.count()/1000;
@@ -787,6 +781,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	layer_params->time_taken = time;
 	layer_params->time_finished = epoch_time;
 	layer_params->theta_end = thetaSweep ? thetaEnd : theta;
+	layer_params->nearest_neighbor = nearest_neighbor;
 	params->addLayer(layer_params);
 	params->serialize();
 

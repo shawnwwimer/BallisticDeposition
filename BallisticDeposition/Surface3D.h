@@ -13,6 +13,7 @@ class Surface3D
 	uint16_t L;
 	uint16_t H;
 	uint16_t W;
+	int neighbor_distance;
 
 	int8_t* grid = nullptr;
 	int8_t* adjacency = nullptr;
@@ -30,7 +31,7 @@ class Surface3D
 
 
 public:
-	Surface3D(uint16_t length, uint16_t height, uint16_t width, int8_t* grid, std::vector<int8_t>* species, std::vector<std::vector<float>>* weights, uint32_t seed);
+	Surface3D(uint16_t length, uint16_t height, uint16_t width, int8_t* grid, std::vector<int8_t>* species, std::vector<std::vector<float>>* weights, uint32_t seed, int neighbor_distance);
 
 	~Surface3D();
 

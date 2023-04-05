@@ -8,7 +8,7 @@
 
 int main()
 {
-    bool cts_simulation = true;
+    bool cts_simulation = false;
     if (cts_simulation) {
         float theta = 85;
         float L = 128;
@@ -28,11 +28,11 @@ int main()
     }
     else {
         float theta = 85;
-        uint16_t L = 768;
-        uint16_t H = 800;
-        uint32_t reps = 8192 * 32 * 8 * 4 * 2;
+        uint16_t L = 1024;
+        uint16_t H = 1024;
+        uint32_t reps = 128*9e4;
         float phi = 0;
-        float turns = 2;
+        float turns = 0;
         uint32_t seed = 0;
         uint16_t diffusion_steps = 5;
         std::vector<int8_t> sSi = { 1 };
@@ -66,9 +66,33 @@ int main()
 
         uint32_t inputGridPoints = count;
         uint32_t points = 0;
-        std::vector<float> thetas = { 80, 82, 84, 85, 86, 88, 89 };
-        std::vector<int> Ds = { 0, 1, 2, 5, 10, 15, 20, 25, 30, 50, 75, 100 };
+        std::vector<float> thetas = { 85 };
+        std::vector<int> Ds = { 0, 1, 2, 5, 10, 15, 20, 25, 50 };
         float spreads[6] = { 1e-6, 1.f, 2.f, 3.f, 4.f, 5.f };
+
+        for (int s = 0; s < 4; s++) {
+            spread[0] = spreads[s];
+            spread[1] = spreads[s];
+            for (int n = 0; n < 4; n++) {
+                if (n == 1 && (s == 1 || s == 2)) {
+                    continue; // don't redo faces collisions for lower spreads
+                }
+
+                if (s == 0 && n > 0) {
+                    continue; // don't redo no spread for soft collisions
+                }
+
+                for (int t = 0; t < thetas.size(); t++) {
+                    for (int d = 0; d < Ds.size(); d++) {
+                        std::cout << "Simulating theta " << thetas[t] << " degrees and " << Ds[d] << " diffusion steps with connectivity " << n << " and spread " << spread[n] << std::endl;
+                        points = obliqueDeposition(thetas[t], L, H, reps, 0, 0, seed, Ds[d], &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE, n);
+                        params.clearLayers();
+                        //points = obliqueDeposition(thetas[t], L, H, reps, 0, , seed, Ds[i], &sZrO2, &spread, &ZrO2, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, yZrO2, false, false, Acceleration::NONE);
+                        //params.clearLayers();
+                    }
+                }
+            }
+        }
 
         /*points = obliqueDeposition(85.0476, 768, 800, reps * 40.0 / 183, 0, 0, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
         points = obliqueDeposition(83.0166, 768, 800, reps * 130.0 / 183, 0, 0, seed, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
@@ -136,21 +160,7 @@ int main()
         //        }
         //    }
         //}
-        for (int n = 0; n < 5; n++) {
-            for (int d = 0; d < Ds.size(); d++) {
-                for (int t = 0; t < thetas.size(); t++) {
-                    for (int s = 0; s < 1; s++) {
-                        spread[0] = spreads[s];
-                        spread[1] = spreads[s];
-                        std::cout << "Simulating theta " << thetas[t] << " degrees and " << Ds[d] << " diffusion steps." << std::endl;
-                        points = obliqueDeposition(thetas[t], L, H, reps, 0, 1, seed, Ds[d], &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-                        params.clearLayers();
-                        //points = obliqueDeposition(thetas[t], L, H, reps, 0, , seed, Ds[i], &sZrO2, &spread, &ZrO2, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, yZrO2, false, false, Acceleration::NONE);
-                        //params.clearLayers();
-                    }
-                }
-            }
-        }
+        
 
         //
         //for (int n = 0; n < 5; n++) {

@@ -1,7 +1,7 @@
 #include "Surface3D.h"
 
 
-Surface3D::Surface3D(uint16_t length, uint16_t height, uint16_t width, int8_t* grid, std::vector<int8_t>* species, std::vector<std::vector<float>>* weights, uint32_t seed)
+Surface3D::Surface3D(uint16_t length, uint16_t height, uint16_t width, int8_t* grid, std::vector<int8_t>* species, std::vector<std::vector<float>>* weights, uint32_t seed, int neighbor_distance)
 {
 	// Initialize parameters
 	L = length;
@@ -10,6 +10,7 @@ Surface3D::Surface3D(uint16_t length, uint16_t height, uint16_t width, int8_t* g
 	this->grid = grid;
 	this->species = species;
 	this->weights = weights;
+	this->neighbor_distance = neighbor_distance;
 
 	// Start random number generator
 	if (seed == 0) {
@@ -90,9 +91,17 @@ uint8_t Surface3D::add_directly(uint16_t* center, int8_t sp)
 				int32_t kk = center[2] + k;
 
 				// Don't bother with itself or out of z-range
-				if ((i == 0 && j == 0 && k == 0) || kk < 0 || kk > H - 1) {// || (i != 0 && j != 0 && k != 0)) {
+				if ((i == 0 && j == 0 && k == 0) || kk < 0 || kk > H - 1) {
 					continue;
 				}
+
+				if (neighbor_distance == 1 && ((i != 0 and j != 0) || (i != 0 and k != 0) || (j != 0 and k != 0))) {
+					continue;
+				}
+				else if (neighbor_distance == 2 && (i != 0 && j != 0 && k != 0)) {
+					continue;
+				}
+
 				point[2] = (uint16_t)kk;
 				uint32_t idx = flat_index(point, L, L);
 
@@ -139,9 +148,17 @@ uint8_t Surface3D::add(uint16_t* center, int8_t sp)
 				int32_t kk = center[2] + k;
 
 				// Don't bother with itself or out of z-range
-				if ((i == 0 && j == 0 && k == 0) || kk < 0 || kk > H - 1) {// || ( i != 0 && j != 0 && k != 0)) {
+				if ((i == 0 && j == 0 && k == 0) || kk < 0 || kk > H - 1) {
 					continue;
 				}
+
+				if (neighbor_distance == 1 && ((i != 0 and j != 0) || (i != 0 and k != 0) || (j != 0 and k != 0))) {
+					continue;
+				}
+				else if (neighbor_distance == 2 && (i != 0 && j != 0 && k != 0)) {
+					continue;
+				}
+
 				point[2] = (uint16_t)kk;
 				uint32_t idx = flat_index(point, L, L);
 
@@ -191,6 +208,14 @@ uint8_t Surface3D::remove(uint16_t* center, int8_t sp)
 				if ((i == 0 && j == 0 && k == 0) || kk < 0 || kk > H - 1) {
 					continue;
 				}
+
+				if (neighbor_distance == 1 && ((i != 0 and j != 0) || (i != 0 and k != 0) || (j != 0 and k != 0))) {
+					continue;
+				}
+				else if (neighbor_distance == 2 && (i != 0 && j != 0 && k != 0)) {
+					continue;
+				}
+
 				point[2] = (uint16_t)kk;
 				uint32_t idx = flat_index(point, L, L);
 
@@ -226,6 +251,14 @@ uint8_t Surface3D::getNearestNeighbors(uint16_t* center)
 				if ((i == 0 && j == 0 && k == 0) || kk < 0 || kk > H - 1) {
 					continue;
 				}
+
+				if (neighbor_distance == 1 && ((i != 0 and j != 0) || (i != 0 and k != 0) || (j != 0 and k != 0))) {
+					continue;
+				}
+				else if (neighbor_distance == 2 && (i != 0 && j != 0 && k != 0)) {
+					continue;
+				}
+
 				point[2] = (uint16_t)kk;
 
 				// add to neighbor list

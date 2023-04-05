@@ -109,6 +109,7 @@ void SimulationParametersFull::serialize() {
 				serialization += "], ";
 			}
 		}
+		serialization += "\"Nearest neighbor distance\": " + std::to_string(p->nearest_neighbor) + ", ";
 		serialization += "\"Seed\": " + std::to_string(p->seed) + ", ";
 		serialization += "\"Time taken\": " + std::to_string(p->time_taken) + ", ";
 		serialization += "\"Time finished\": " + std::to_string(p->time_finished) + "}}";

@@ -29,6 +29,7 @@ public:
 
 	// Simulation parameters
 	uint32_t seed;
+	int nearest_neighbor;
 
 	// Timing
 	double time_taken;
