@@ -54,3 +54,44 @@ public:
 	uint32_t deposited = 0;
 	float turns = 0;
 };
+
+class ContinuousSimulationParameters {
+public:
+	// Physical parameters
+	uint16_t length;
+	uint16_t width;
+	uint16_t height;
+	float theta;
+
+	// Material parameters
+	std::vector<int8_t>* species;
+	std::vector<float>* radii;
+	float diffusion_length;
+	uint32_t repetitions;
+	std::string system;
+
+	// Simulation parameters
+	uint32_t seed;
+	uint8_t bin_size;
+	float cube_size;
+
+	// Timing
+	double time_taken;
+	uint32_t time_finished;
+};
+
+class ContinuousSimulationParametersFull
+{
+	// Individual parameters
+	ContinuousSimulationParameters* parameters[10];
+	uint8_t number_of_layers = 0;
+
+public:
+	//SimulationParametersFull();
+	~ContinuousSimulationParametersFull();
+	void clearLayers();
+	void addLayer(ContinuousSimulationParameters* layer);
+	void serialize();
+	std::string serialization = "";
+	uint32_t deposited = 0;
+};
