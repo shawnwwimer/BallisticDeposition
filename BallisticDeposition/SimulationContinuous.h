@@ -11,6 +11,7 @@
 #include "SimulationParameters.h"
 #include "SlantedCorridors.h"
 #include "CubicSpacePartition.h"
+#include "Matrix3DLateralPBC.h"
 
 
 float distance3D(uint16_t* p1, uint16_t* p2);

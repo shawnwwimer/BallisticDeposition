@@ -11,12 +11,12 @@ int main()
     bool cts_simulation = true;
     if (cts_simulation) {
         float theta = 85;
-        float L = 64;
-        float H = 128;
-        uint32_t reps = 8192*128/2;
-        uint8_t bin_size = 4;
+        float L = 32;
+        float H = 32;
+        uint32_t reps = 8192*16*4;
+        uint8_t bin_size = 2;
         uint32_t seed = 0;
-        float diffusion_length = 0;
+        float diffusion_length = 5;
         std::vector<int8_t> species = { 1 };
         std::vector<float> radii = { 0.111 };
         std::vector<std::vector<float>> weights = { {{1, .1}, {.1, 1}} };
@@ -24,7 +24,7 @@ int main()
         ContinuousSimulationParametersFull params;
         std::string system = "Si";
 
-        std::vector<float> thetas = { 85, 80, 82, 84, 86, 88, 89 };
+        std::vector<float> thetas = { 85 };
         for (float t : thetas) {
             std::cout << "Deposition at " << t << std::endl;
             obliqueDepositionContinuous(t, L, H, reps, bin_size, seed, diffusion_length, 10, &species, &radii, &weights, inputGrid, &params, system);

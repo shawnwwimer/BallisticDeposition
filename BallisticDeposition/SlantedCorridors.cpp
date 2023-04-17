@@ -3,10 +3,7 @@
 #include <algorithm>
 #include <iterator>
 
-float modulof(float val, float mod)
-{
-    return fmodf((fmodf(val, mod) + mod), mod);
-}
+
 
 std::set<particle_priority>* SlantedCorridors::find_bins(std::array<float, 3>* position, float radius)
 {

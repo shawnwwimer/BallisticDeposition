@@ -6,7 +6,7 @@
 #include <iterator>
 #include <iostream>
 
-//#include "math_utils.h"
+#include "math_utils.h"
 
 struct particle_priority
 {
@@ -32,8 +32,6 @@ struct collision_description
 		position[2] = z;
 	}
 };
-
-float modulof(float val, float mod);
 
 
 class SlantedCorridors
