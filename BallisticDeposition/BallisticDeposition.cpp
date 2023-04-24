@@ -13,10 +13,10 @@ int main()
         float theta = 85;
         float L = 32;
         float H = 32;
-        uint32_t reps = 8192*16*4;
+        uint32_t reps = 8192*2;
         uint8_t bin_size = 2;
-        uint32_t seed = 0;
-        float diffusion_length = 5;
+        uint32_t seed = 123456789;
+        float diffusion_length = 0;
         std::vector<int8_t> species = { 1 };
         std::vector<float> radii = { 0.111 };
         std::vector<std::vector<float>> weights = { {{1, .1}, {.1, 1}} };
@@ -27,7 +27,7 @@ int main()
         std::vector<float> thetas = { 85 };
         for (float t : thetas) {
             std::cout << "Deposition at " << t << std::endl;
-            obliqueDepositionContinuous(t, L, H, reps, bin_size, seed, diffusion_length, 10, &species, &radii, &weights, inputGrid, &params, system);
+            obliqueDepositionContinuous(t, L, H, reps, bin_size, seed, diffusion_length, 20, &species, &radii, &weights, inputGrid, &params, system);
             params.clearLayers();
         }
         

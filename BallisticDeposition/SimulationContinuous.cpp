@@ -67,12 +67,6 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	float s6 = pow(s, 6);
 	float s12 = pow(s6, 2);
 
-	// Set up potentials for diffusion
-	/*float* potentials = (float*)malloc(sizeof(float) * L * length_scale * L * length_scale * H * length_scale * 4);
-	for (int i = 0; i < L * L * H * length_scale * length_scale * length_scale * 4; i++) {
-		potentials[i] = 0;
-	}*/
-
 	Matrix3DLateralPBC potentials = Matrix3DLateralPBC(L, L, H, length_scale);
 
 	float A = 1;
@@ -168,7 +162,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 
 		// Drop particle
 		collision_description* collision = corridors.drop_particle(&dest, (*radii)[sp], &atoms);
-
+		
 		std::chrono::duration<double, std::milli> dural = std::chrono::high_resolution_clock::now() - startl;
 		timel += dural.count() / 1000;
 
@@ -469,8 +463,9 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		free(outGrid);
 	}
 
-	potentials.save_file("potential.npy");
+	//potentials.save_file("potential.npy");
 	//region.save_file("region.npy");
+	corridors.save_file("priority.npy");
 
 	std::ofstream json_file;
 	json_file.open("params.json");
@@ -483,14 +478,16 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	int err = writeFileToZipCTS((filename + ".simc").c_str(), "grid.npy");
 	//err = writeFileToZip((filename + ".sim").c_str(), "structures/cts/diff.npy");
 	err = writeFileToZipCTS((filename + ".simc").c_str(), "params.json");
-	err = writeFileToZipCTS((filename + ".simc").c_str(), "potential.npy");
+	//err = writeFileToZipCTS((filename + ".simc").c_str(), "potential.npy");
+	err = writeFileToZipCTS((filename + ".simc").c_str(), "priority.npy");
 
 	// Remove the individual files
 	// TODO: combine the writeFileToZip function and the writing of npy files so clean up isn't necessary
 	std::remove("grid.npy");
 	//std::remove("structures/cts/diff.npy");
 	std::remove("params.json");
-	std::remove("potential.npy");
+	//std::remove("potential.npy");
+	std::remove("priority.npy");
 
 	// Print the timing
 	std::cout << reps << " reps completed in " << time << " seconds; \n" << reps / time << " reps per second." << std::endl;

@@ -5,6 +5,7 @@
 #include <vector>
 #include <iterator>
 #include <iostream>
+#include "cnpy.h"
 
 #include "math_utils.h"
 
@@ -81,11 +82,12 @@ private:
 	//std::vector<uint32_t> get_nearby_particles(float* position, float radius);
 	float calc_priority(std::array<float, 3>* position)
 	{
+		return cos_theta * (*position)[2] + sin_theta * (L - (*position)[0]);
 		float x1 = (*position)[0] + (*position)[2] * tan_theta;
 		float sub = fmod(L - x1, L) * sin_theta;
-		//float sub = (ceil(x1 / bin_size) * bin_size - x1) * sin_theta + max_sub * floor((position[2] + position[0] * tan_90theta) / max_z0);
+		//float sub = (L - x1) * sin_theta;
 		float above = (*position)[2] / cos_theta;
-		//return sub + above;
+		return sub + above;
 		return (*position)[2];
 	}
 
@@ -103,17 +105,7 @@ public:
 
 		bins_on_side = (uint8_t)(L / bin_size);
 		bins_num = bins_on_side * bins_on_side;
-		/*
-		bins = (std::set<particle_priority>**)malloc(sizeof(std::set<particle_priority>**));
-		if (bins == nullptr) {
-			throw;
-		}
-		*bins = (std::set<particle_priority>*)malloc(sizeof(std::set<particle_priority>*) * bins_num);
-		
-		for (uint8_t i = 0; i < bins_num; i++) {
-			(bins)[i] = new std::set<particle_priority>;
-		}
-		*/
+
 		for (uint32_t i = 0; i < bins_num; i++) {
 			std::set<particle_priority>* b = new std::set<particle_priority>;
 			bins.push_back(*b);
@@ -155,7 +147,13 @@ public:
 
 	collision_description* drop_particle(std::array<float, 3>* position, float radius, std::vector<std::vector<float>>* atoms);
 
-
+	void save_file(const char* fname) {
+		std::vector<float> arr;
+		for (auto p : particles) {
+			arr.push_back(p->priority);
+		}
+		cnpy::npy_save(fname, arr);
+	}
 
 
 };
