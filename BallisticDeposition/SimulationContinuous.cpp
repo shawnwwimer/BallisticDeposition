@@ -154,8 +154,8 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		auto startl = std::chrono::high_resolution_clock::now();
 
 		// Generate 
-		dest = { dist(gen), dist(gen), 0 };//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
-		//dest = { 0, 0, 0 };
+		//dest = { dist(gen), dist(gen), 0 };//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
+		dest = { 16.0f+0*powf(n/12.8f, 2), 0, 0 };
 
 		// Choose species
 		int sp = 0;
@@ -388,19 +388,21 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		cubes.add_to_bins(n, collision->position);
 
 		// Update potentials
-		potentials.scaled_point(collision->position, center);
-		for (int k = -diameter / 2; k < diameter/2; k++) {
-			int kk = center[2] + k;
-			if (kk < 0 || kk > potentials.get_Hs()) {
-				continue;
-			}
-			for (int j = -diameter / 2; j < diameter/2; j++) {
-				int jj = center[1] + j;
-				for (int i = -diameter / 2; i < diameter/2; i++) {
-					int ii = center[0] + i;
+		if (diffusion_length > 0) {
+			potentials.scaled_point(collision->position, center);
+			for (int k = -diameter / 2; k < diameter / 2; k++) {
+				int kk = center[2] + k;
+				if (kk < 0 || kk > potentials.get_Hs()) {
+					continue;
+				}
+				for (int j = -diameter / 2; j < diameter / 2; j++) {
+					int jj = center[1] + j;
+					for (int i = -diameter / 2; i < diameter / 2; i++) {
+						int ii = center[0] + i;
 
-					// add to potential field
-					potentials(ii, jj, kk) += region(i + diameter/2, j + diameter / 2, k + diameter / 2);
+						// add to potential field
+						potentials(ii, jj, kk) += region(i + diameter / 2, j + diameter / 2, k + diameter / 2);
+					}
 				}
 			}
 		}
