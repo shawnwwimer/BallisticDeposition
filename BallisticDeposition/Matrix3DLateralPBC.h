@@ -119,13 +119,13 @@ public:
 		int y = xyz[1] * scale;
 		int z = xyz[2] * scale;
 
-		if (x > L || x < 0) {
+		/*if (x > L || x < 0) {
 			x = modulof(x, L);
 		}
 
 		if (y > W || y < 0) {
 			y = modulof(y, W);
-		}
+		}*/
 
 		// initialize minimum
 		std::array<int, 3> minimum = { x, y, z };
@@ -139,37 +139,30 @@ public:
 			if (kk < 0 || kk > Hs) {
 				continue;
 			}
-			int idx = kk * WLs;
+			int idxz = kk * WLs;
 			for (int j = -rad_disc; j < rad_disc; j++) {
 				// create and range y-index, then update flat
 				int jj = y + j;
-				if (jj > W || jj < 0) {
-					jj = modulof(jj, W);
+				if (jj > Ws || jj < 0) {
+					jj = modulof(jj, Ws);
 				}
-				idx += jj * Ls;
+				int idxy = idxz + jj * Ls;
 				for (int i = -rad_disc; i < rad_disc; i++) {
 					// create and range x-index, then update flat
 					int ii = x + i;
-					if (ii > L || ii < 0) {
-						ii = modulof(ii, L);
+					if (ii > Ls || ii < 0) {
+						ii = modulof(ii, Ls);
 					}
-					idx += ii;
+					int idxx = idxy + ii;
 
 					// if it's the minimum update
-					if (arr[idx] < min_val) {
-						min_val = arr[idx];
+					if (arr[idxx] < min_val) {
+						min_val = arr[idxx];
 						minimum = { ii, jj, kk };
+						xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
 					}
 				}
 			}
-		}
-
-		if (x > L || x < 0) {
-			x = modulof(x, L);
-		}
-
-		if (y > W || y < 0) {
-			y = modulof(y, W);
 		}
 	}
 
