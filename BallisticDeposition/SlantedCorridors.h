@@ -13,7 +13,8 @@ struct particle_priority
 {
 	uint32_t idx;
 	float priority;
-	particle_priority(uint32_t idx, float priority) : idx{ idx }, priority{ priority }{}
+	float adjx;
+	particle_priority(uint32_t idx, float priority, float adjx) : idx{ idx }, priority{ priority }, adjx{ adjx }{}
 	//bool operator <(particle_priority a) { return (priority < a.priority); }
 	//bool operator >(particle_priority a) { return (priority > a.priority); }
 	//bool operator ==(particle_priority a) { return (priority == a.priority); }
@@ -46,6 +47,7 @@ private:
 	float tan_90theta;
 	float sin_theta;
 	float cos_theta;
+	float cos_theta45;
 
 	float max_sub;
 	float max_z0;
@@ -61,6 +63,7 @@ private:
 
 	// For use by functions
 	std::array<std::set<particle_priority>*, 8> bins_found = { 0 };
+	std::array<float, 8> factor = { 0 };
 	uint8_t bins_found_num = 0;
 	collision_description collision = collision_description(0, 0, 0, -1);
 	//float dropped_point[3] = { 0.f };
@@ -78,14 +81,15 @@ private:
 		return &bins[find_bin_idx(position)];
 	}
 	std::set<particle_priority>* find_bins(std::array<float, 3>* position, float radius);
-	
+
 	//std::vector<uint32_t> get_nearby_particles(float* position, float radius);
 	float calc_priority(std::array<float, 3>* position)
 	{
-		return cos_theta * (*position)[2] + sin_theta * (L - (*position)[0]);
+		//return cos_theta * (*position)[2] + sin_theta * (L - (*position)[0]);
 		float x1 = (*position)[0] + (*position)[2] * tan_theta;
-		float sub = fmod(L - x1, L) * sin_theta;
+		//float sub = fmod(L - x1, L) * sin_theta;
 		//float sub = (L - x1) * sin_theta;
+		float sub = (L - modulof(x1, L)) * sin_theta;
 		float above = (*position)[2] / cos_theta;
 		return sub + above;
 		return (*position)[2];
@@ -93,13 +97,14 @@ private:
 
 
 public:
-	SlantedCorridors(float L, float H, float theta, uint8_t bin_size) : L{ L }, H{ H }, theta{ theta } , bin_size{ bin_size }
+	SlantedCorridors(float L, float H, float theta, uint8_t bin_size) : L{ L }, H{ H }, theta{ theta }, bin_size{ bin_size }
 	{
 		Lfloat = (float)L;
 		tan_theta = tan(theta * pi / 180.0);
 		sin_theta = sin(theta * pi / 180.0);
 		cos_theta = cos(theta * pi / 180.0);
 		tan_90theta = tan((90 - theta) * pi / 180.0);
+		cos_theta45 = cos((theta - 45) * pi / 180.0);
 		max_sub = L * sin_theta;
 		max_z0 = L * tan_90theta;
 
@@ -129,12 +134,13 @@ public:
 
 	std::set<particle_priority>* add_to_bins(std::array<float, 3>* position, float radius, uint32_t idx)
 	{
-		float priority = calc_priority(position) + idx/100000.0;
+		float priority = calc_priority(position) + idx / 100000.0;
 		find_bins(position, radius);
-		particle_priority* x = new particle_priority(idx, priority);
+		float adjusted_x = modulof((*position)[2] * tan_theta + (*position)[0], L);
+		particle_priority* x = new particle_priority(idx, priority, adjusted_x);
 		particles.push_back(x);
 
-		for (int i = 0; i < bins_found_num; i++) {
+		for (int i = 0; i < 1/*bins_found_num*/; i++) {
 			bins_found[i]->insert(*x);
 		}
 
