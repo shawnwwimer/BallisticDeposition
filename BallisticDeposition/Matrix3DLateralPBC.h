@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <array>
 #include <stdio.h>
-#include<string>
+#include <string>
+#include <stdexcept>
 #include "cnpy.h"
 #include "math_utils.h"
 
@@ -111,8 +112,8 @@ public:
 	/// <param name="xyz">Three-element float array of location in nm to be updated.</param>
 	/// <param name="radius">Radius in nm over which to search for minimum.</param>
 	void find_local_minimum(std::array<float, 3>& xyz, float radius) {
-		if (xyz[2] > H || xyz[2] < 0) {
-			throw("Z coordinate out of range.");
+		if (xyz[2] > H || xyz[2] < 0 || isnan(xyz[2])) {
+			throw std::out_of_range("Z coordinate out of range.");
 		}
 
 		int x = xyz[0] * scale;
