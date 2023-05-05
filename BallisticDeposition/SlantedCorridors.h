@@ -62,7 +62,7 @@ private:
 	std::vector<std::set<particle_priority>> bins;
 
 	// For use by functions
-	std::array<std::set<particle_priority>*, 8> bins_found = { 0 };
+	std::array<std::set<particle_priority>*, 9> bins_found = { 0 };
 	std::array<float, 8> factor = { 0 };
 	uint8_t bins_found_num = 0;
 	collision_description collision = collision_description(0, 0, 0, -1);
@@ -81,6 +81,8 @@ private:
 		return &bins[find_bin_idx(position)];
 	}
 	std::set<particle_priority>* find_bins(std::array<float, 3>* position, float radius);
+
+	std::set<particle_priority>* find_neighborhood(std::array<float, 3>* position);
 
 	//std::vector<uint32_t> get_nearby_particles(float* position, float radius);
 	float calc_priority(std::array<float, 3>* position)

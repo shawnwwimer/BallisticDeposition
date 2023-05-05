@@ -188,11 +188,31 @@ std::set<particle_priority>* SlantedCorridors::find_bins(std::array<float, 3>* p
     return nullptr;
 }
 
+std::set<particle_priority>* SlantedCorridors::find_neighborhood(std::array<float, 3>* position) {
+    uint32_t idx = find_bin_idx(position);
+    bins_found[0] = &bins[idx];
+    uint32_t row = idx / bins_on_side;
+    uint32_t column = idx % bins_on_side;
+    uint32_t left = modulo(column % bins_on_side - 1, bins_on_side) + bins_on_side * row;
+    uint32_t right = (column % bins_on_side + 1) % bins_on_side + bins_on_side * row;
+    bins_found[1] = &bins[left];
+    bins_found[2] = &bins[right];
+    bins_found[3] = &bins[modulo(idx + bins_on_side, bins_num)];
+    bins_found[4] = &bins[modulo(idx - bins_on_side, bins_num)];
+    bins_found[5] = &bins[modulo(left + bins_on_side, bins_num)];
+    bins_found[6] = &bins[modulo(left - bins_on_side, bins_num)];
+    bins_found[7] = &bins[modulo(right + bins_on_side, bins_num)];
+    bins_found[8] = &bins[modulo(right - bins_on_side, bins_num)];
+    bins_found_num = 9;
+
+    return nullptr;
+}
+
 // Atoms is (nx6) float array
 collision_description* SlantedCorridors::drop_particle(std::array<float, 3>* position, float radius, std::vector<std::vector<float>>* atoms)
 {
     // Combine bins into temporary big bin
-    find_bins(position, radius);
+    find_neighborhood(position);
     //std::set<particle_priority>** fbins = bins_found;
     //std::set<particle_priority> b;
     //for (int i = 0; i < bins_found_num; i++) {
