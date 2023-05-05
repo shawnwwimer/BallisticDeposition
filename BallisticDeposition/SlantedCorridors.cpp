@@ -250,13 +250,13 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3>* pos
                 if (straddle) {
                     float adj_x_p = particles[(*iterators[j]).idx]->adjx;
                     if (straddle && adj_x_p > L - bin_size) {
-                        temp_pri += L;
+                        temp_pri += L * sin_theta;
                     }
                 }
 
                 if (temp_pri > max) {
                     bin = j;
-                    max = particles[(*iterators[j]).idx]->priority;
+                    max = temp_pri;
                 }
             }
         }

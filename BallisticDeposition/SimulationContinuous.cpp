@@ -126,6 +126,12 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	std::array<float, 3> current_minimum = { 0, 0, 0 };
 	std::array<int, 3> center = { 0, 0, 0 };
 
+	std::vector<float> target = { };
+	for (int i = 0; i < reps; i++) {
+		target.push_back(L - 0.01);
+		target.push_back(0.01);
+	}
+
 	// Create random number generator
 	if (seed == 0) {
 		std::random_device rd;
@@ -154,8 +160,8 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		auto startl = std::chrono::high_resolution_clock::now();
 
 		// Generate 
-		//dest = { dist(gen), dist(gen), 0 };//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
-		dest = { 16.0f+0*powf(n/12.8f, 2), 0, 0 };
+		dest = { dist(gen), dist(gen), 0 };//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
+		//dest = { target[n], 1, 0 };
 
 		// Choose species
 		int sp = 0;
@@ -261,10 +267,14 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		while (distance > 0) {
 			// first jump near minimum
 			current_minimum = collision->position;
-			float remaining_distance = (distance > (*radii)[0]) + 1/length_scale/2 ? (*radii)[0] : distance - 1/length_scale/2;
+			float remaining_distance = (distance > (*radii)[0]) + 1/length_scale/2 ? 3*(*radii)[0] : distance - 1/length_scale/2;
+			if (current_minimum[2] < 0) {
+				current_minimum[2] = (*radii)[0];
+			}
 			potentials.find_local_minimum(current_minimum, remaining_distance);
+			
 
-			for (float settle = 1 / length_scale/2; settle > 0; settle -= step_size) {
+			for (float settle = 0/*1 / length_scale/2*/; settle > 0; settle -= step_size) {
 				direction = { 0, 0, 0 };
 				std::vector<int>* neighbors = cubes.find_nearest_bin(current_minimum);
 				if (VERBOSE) {
@@ -275,16 +285,18 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 					float r = sqrt(dist2);
 					float r6 = pow(dist2, 3);
 					float r12 = pow(r6, 2);
-					force_mag = (2 / r) * (2 * s12 / r12 - s6 / r6);
+					force_mag = -(2 / r) * (s6 / r6 - 2 * s12 / r12);
 					direction[0] += (current_minimum[0] - atoms[p][0]) / r * force_mag;
 					direction[1] += (current_minimum[1] - atoms[p][1]) / r * force_mag;
 					direction[2] += (current_minimum[2] - atoms[p][2]) / r * force_mag;
 				}
-				if (collision->position[2] < 2) {
-					float r = collision->position[2];
+				if (current_minimum[2] < (*radii)[0] && direction[2] < 0) {
+					direction = { 0, 0, 1 };
+				} else if (current_minimum[2] < 2) {
+					float r = current_minimum[2] + (*radii)[0];
 					float r6 = pow(r, 6);
 					float r12 = pow(r6, 2);
-					force_mag = (2 / r) * (2 * s12 / r12 - s6 / r6);
+					force_mag = (2 / r) * (s6 / r6 - 2 * s12 / r12);
 					direction[2] += force_mag;
 				}
 				force_mag = sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
@@ -326,7 +338,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 						std::cout << "to [" << current_minimum[0] << ", " << current_minimum[1] << ", " << current_minimum[2] << "] " << std::endl;
 					}
 
-					if (isnan(current_minimum[0])) {
+					if (isnan(current_minimum[0]) || current_minimum[2] < 0) {
 						break;
 					}
 				}
@@ -340,12 +352,13 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 				break;
 			}
 			else {
-				collision->position[0] == current_minimum[0];
-				collision->position[1] == current_minimum[1];
-				collision->position[2] == current_minimum[2];
+				collision->position[0] = current_minimum[0];
+				collision->position[1] = current_minimum[1];
+				collision->position[2] = current_minimum[2];
 			}
 			distance -= remaining_distance + 1 / length_scale/2;
 		}
+		//collision->position = current_minimum;
 		
 
 		if (VERBOSE) {
@@ -482,6 +495,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	err = writeFileToZipCTS((filename + ".simc").c_str(), "params.json");
 	//err = writeFileToZipCTS((filename + ".simc").c_str(), "potential.npy");
 	err = writeFileToZipCTS((filename + ".simc").c_str(), "priority.npy");
+	//err = writeFileToZipCTS((filename + ".simc").c_str(), "region.npy");
 
 	// Remove the individual files
 	// TODO: combine the writeFileToZip function and the writing of npy files so clean up isn't necessary
@@ -490,6 +504,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	std::remove("params.json");
 	//std::remove("potential.npy");
 	std::remove("priority.npy");
+	//std::remove("region.npy");
 
 	// Print the timing
 	std::cout << reps << " reps completed in " << time << " seconds; \n" << reps / time << " reps per second." << std::endl;
