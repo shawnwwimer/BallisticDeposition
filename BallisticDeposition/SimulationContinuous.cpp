@@ -67,58 +67,62 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	float s6 = pow(s, 6);
 	float s12 = pow(s6, 2);
 
-	Matrix3DLateralPBC potentials = Matrix3DLateralPBC(L, L, H, length_scale);
+	
 
 	float A = 1;
 	float R = 1;
 	float Vm = length_scale * (2 * (*radii)[0]);
 	float zero_pot = Vm / pow(2, 1.0 / 6.0);
-
 	Matrix3DLateralPBC region = Matrix3DLateralPBC(2.f, 2.f, 2.f, length_scale);
-
+	Matrix3DLateralPBC potentials = Matrix3DLateralPBC(L, L, H, length_scale);
 	int diameter = region.get_Hs();
+	if (diffusion_length > 0) {
+		region.initialize();
+		potentials.initialize();
+		for (int k = 0; k < diameter; k++) {
+			int kk = k - (diameter - 1) / 2;
+			for (int j = 0; j < diameter; j++) {
+				int jj = j - (diameter - 1) / 2;
+				for (int i = 0; i < diameter; i++) {
+					int ii = i - (diameter - 1) / 2;
 
-	//float* region = (float* )malloc(sizeof(float) * diameter * diameter * diameter * 4);
-	for (int k = 0; k < diameter; k++) {
-		int kk = k - (diameter - 1) / 2;
-		for (int j = 0; j < diameter; j++) {
-			int jj = j - (diameter - 1) / 2;
-			for (int i = 0; i < diameter; i++) {
-				int ii = i - (diameter - 1) / 2;
-
-				if (ii == 0 && jj == 0 && kk == 0) {
-					/*region[i, j, k, 0] = 0;
-					region[i, j, k, 1] = 0;
-					region[i, j, k, 2] = 0;
-					region[i, j, k, 3] = 1e6;*/
-					region(i, j, k) = 1e6;
-				}
-				else {
-					float r = sqrt(ii * ii + jj * jj + kk * kk);
-					float mag = A * pow((zero_pot / r), 12) - R * pow((zero_pot / r), 6);
-					//region[k * diameter * diameter + j * diameter + i + 3] = mag;
-					if (r < Vm) {
-						/*region[k * diameter * diameter + j * diameter + i] = ((float)ii)/r;
-						region[k * diameter * diameter + j * diameter + i + 1] = ((float)jj) / r;
-						region[k * diameter * diameter + j * diameter + i + 2] = ((float)kk) / r;*/
-						/*(*region(i, j, k))[0] = mag * ((float)ii) / r;
-						(*region(i, j, k))[1] = mag * ((float)jj) / r;
-						(*region(i, j, k))[2] = mag * ((float)kk) / r;*/
-						region(i, j, k) = mag;
+					if (ii == 0 && jj == 0 && kk == 0) {
+						/*region[i, j, k, 0] = 0;
+						region[i, j, k, 1] = 0;
+						region[i, j, k, 2] = 0;
+						region[i, j, k, 3] = 1e6;*/
+						region(i, j, k) = 1e6;
 					}
 					else {
-						/*region[k * diameter * diameter + j * diameter + i] = -((float)ii) / r;
-						region[k * diameter * diameter + j * diameter + i + 1] = -((float)jj) / r;
-						region[k * diameter * diameter + j * diameter + i + 2] = -((float)kk) / r;*/
-						/*(*region(i, j, k))[0] = mag * ((float)ii) / r;
-						(*region(i, j, k))[1] = mag * ((float)jj) / r;
-						(*region(i, j, k))[2] = mag * ((float)kk) / r;*/
-						region(i, j, k) = mag;
+						float r = sqrt(ii * ii + jj * jj + kk * kk);
+						float mag = A * pow((zero_pot / r), 12) - R * pow((zero_pot / r), 6);
+						//region[k * diameter * diameter + j * diameter + i + 3] = mag;
+						if (r < Vm) {
+							/*region[k * diameter * diameter + j * diameter + i] = ((float)ii)/r;
+							region[k * diameter * diameter + j * diameter + i + 1] = ((float)jj) / r;
+							region[k * diameter * diameter + j * diameter + i + 2] = ((float)kk) / r;*/
+							/*(*region(i, j, k))[0] = mag * ((float)ii) / r;
+							(*region(i, j, k))[1] = mag * ((float)jj) / r;
+							(*region(i, j, k))[2] = mag * ((float)kk) / r;*/
+							region(i, j, k) = mag;
+						}
+						else {
+							/*region[k * diameter * diameter + j * diameter + i] = -((float)ii) / r;
+							region[k * diameter * diameter + j * diameter + i + 1] = -((float)jj) / r;
+							region[k * diameter * diameter + j * diameter + i + 2] = -((float)kk) / r;*/
+							/*(*region(i, j, k))[0] = mag * ((float)ii) / r;
+							(*region(i, j, k))[1] = mag * ((float)jj) / r;
+							(*region(i, j, k))[2] = mag * ((float)kk) / r;*/
+							region(i, j, k) = mag;
+						}
 					}
 				}
 			}
 		}
 	}
+	
+	//float* region = (float* )malloc(sizeof(float) * diameter * diameter * diameter * 4);
+	
 	int steps = round(length_scale * diffusion_length);
 	int rads = round(length_scale * 2 * (*radii)[0]);
 	float scaled_position[3] = { 0 };

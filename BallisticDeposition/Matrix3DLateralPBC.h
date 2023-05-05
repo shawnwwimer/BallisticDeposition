@@ -15,6 +15,7 @@ private:
 	float L, W, H;
 	float scale;
 	size_t Ls, Ws, Hs, WLs;
+	bool init = false;
 
 public:
 	/// <summary>
@@ -25,18 +26,27 @@ public:
 	/// <param name="H">z-extent</param>
 	/// <param name="scale">Some number such that L/scale, W/scale, and H/scale are all integers larger than the dimension. Default: 0.1f. </param>
 	Matrix3DLateralPBC(float L, float W, float H, float scale=10.f) : L{ L }, W{ W }, H{ H }, scale{ scale }{
-		Ls = L * scale;
-		Ws = W * scale;
-		Hs = H * scale;
-		WLs = Ls * Ws;
-		arr = (float*)malloc(sizeof(float) * Ls * Ws * Hs);
-		for (int i = 0; i < Ls * Ws * Hs; i++) {
-			arr[i] = 0;
+		
+	}
+	
+	void initialize() {
+		if (!init) {
+			Ls = L * scale;
+			Ws = W * scale;
+			Hs = H * scale;
+			WLs = Ls * Ws;
+			arr = (float*)malloc(sizeof(float) * Ls * Ws * Hs);
+			for (int i = 0; i < Ls * Ws * Hs; i++) {
+				arr[i] = 0;
+			}
+			init = true;
 		}
 	}
 
 	~Matrix3DLateralPBC() {
-		free(arr);
+		if (init) {
+			free(arr);
+		}
 	}
 
 	/// <summary>
