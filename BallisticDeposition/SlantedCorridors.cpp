@@ -189,16 +189,18 @@ std::set<particle_priority>* SlantedCorridors::find_bins(std::array<float, 3>* p
 }
 
 std::set<particle_priority>* SlantedCorridors::find_neighborhood(std::array<float, 3>* position) {
-    uint32_t idx = find_bin_idx(position);
+    int32_t idx = find_bin_idx(position);
     bins_found[0] = &bins[idx];
-    uint32_t row = idx / bins_on_side;
-    uint32_t column = idx % bins_on_side;
-    uint32_t left = modulo(column % bins_on_side - 1, bins_on_side) + bins_on_side * row;
-    uint32_t right = (column % bins_on_side + 1) % bins_on_side + bins_on_side * row;
+    int32_t row = idx / bins_on_side;
+    int32_t column = idx % bins_on_side;
+    int32_t left = modulo(column % bins_on_side - 1, bins_on_side) + bins_on_side * row;
+    int32_t right = (column % bins_on_side + 1) % bins_on_side + bins_on_side * row;
+    int32_t top = modulo(idx + bins_on_side, bins_num);
+    int32_t bottom = modulo(idx - bins_on_side, bins_num);
     bins_found[1] = &bins[left];
     bins_found[2] = &bins[right];
-    bins_found[3] = &bins[modulo(idx + bins_on_side, bins_num)];
-    bins_found[4] = &bins[modulo(idx - bins_on_side, bins_num)];
+    bins_found[3] = &bins[top];
+    bins_found[4] = &bins[bottom];
     bins_found[5] = &bins[modulo(left + bins_on_side, bins_num)];
     bins_found[6] = &bins[modulo(left - bins_on_side, bins_num)];
     bins_found[7] = &bins[modulo(right + bins_on_side, bins_num)];
@@ -221,13 +223,18 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3>* pos
 
     // Need to know relative position
     float adjusted_x = (*position)[2] * tan_theta + (*position)[0];
-    int factor = (int)(adjusted_x / L);
+    //int factor = (int)(adjusted_x / L);
     adjusted_x = modulof(adjusted_x, Lfloat);
+    
+    
 
-    // If adjusted_x too near L we need to set 'straddle' high
-    bool straddle = false;
-    if (adjusted_x < radius || adjusted_x > L - radius) {
-        straddle = true;
+    // If adjusted_x too near L we need to set 'straddle'
+    int straddle = 0;
+    if (adjusted_x < bin_size) {
+        straddle = -1;
+    }
+    else if (adjusted_x >= L - bin_size) {
+        straddle = 1;
     }
 
     // Get sizes and set up indices for bins found
@@ -247,9 +254,12 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3>* pos
             if (iterators[j] != bins_found[j]->end()) {
                 float temp_pri = particles[(*iterators[j]).idx]->priority;
                 // if the particle is near the PB we need to adjust some of the priorities as we go
-                if (straddle) {
+                if (straddle != 0) {
                     float adj_x_p = particles[(*iterators[j]).idx]->adjx;
-                    if (straddle && adj_x_p > L - bin_size) {
+                    if (straddle == 1 && adj_x_p < bin_size) {
+                        temp_pri -= L * sin_theta;
+                    }
+                    else if (straddle == -1 && adj_x_p >= L - bin_size) {
                         temp_pri += L * sin_theta;
                     }
                 }

@@ -5,6 +5,8 @@
 #include <vector>
 #include <iterator>
 #include <iostream>
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include "cnpy.h"
 
 #include "math_utils.h"
@@ -42,21 +44,21 @@ private:
 	float L;
 	float Lfloat;
 	float H;
-	float theta;
-	float tan_theta;
-	float tan_90theta;
-	float sin_theta;
-	float cos_theta;
-	float cos_theta45;
+	double theta;
+	double tan_theta;
+	double tan_90theta;
+	double sin_theta;
+	double cos_theta;
+	double cos_theta45;
 
-	float max_sub;
-	float max_z0;
+	double max_sub;
+	double max_z0;
 
-	float pi = 3.141592653;
+	double pi = M_PI;
 
 	uint8_t bin_size;
-	uint16_t bins_on_side;
-	uint32_t bins_num;
+	int32_t bins_on_side;
+	int32_t bins_num;
 	std::vector<particle_priority*> particles;
 	//bool comp(particle_priority a, particle_priority b) { return a.priority > b.priority; }; // need a comparison for the sets
 	std::vector<std::set<particle_priority>> bins;
@@ -74,7 +76,7 @@ private:
 		float adjusted_x = (*position)[2] * tan_theta + (*position)[0];
 		uint8_t spacex = (uint8_t)floor(modulof(adjusted_x, L) / bin_size);
 		uint8_t spacey = (uint8_t)floor(modulof((*position)[1], L) / bin_size);
-		return spacex + spacey * bins_on_side;
+		return spacey + spacex * bins_on_side;
 	}
 	std::set<particle_priority>* find_bin(std::array<float, 3>* position)
 	{
@@ -99,7 +101,7 @@ private:
 
 
 public:
-	SlantedCorridors(float L, float H, float theta, uint8_t bin_size) : L{ L }, H{ H }, theta{ theta }, bin_size{ bin_size }
+	SlantedCorridors(float L, float H, double theta, uint8_t bin_size) : L{ L }, H{ H }, theta{ theta }, bin_size{ bin_size }
 	{
 		Lfloat = (float)L;
 		tan_theta = tan(theta * pi / 180.0);
