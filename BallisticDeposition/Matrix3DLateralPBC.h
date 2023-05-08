@@ -11,7 +11,7 @@
 class Matrix3DLateralPBC
 {
 private:
-	float * arr;
+	float * arr = nullptr;
 	float L, W, H;
 	float scale;
 	size_t Ls, Ws, Hs, WLs;
@@ -26,15 +26,14 @@ public:
 	/// <param name="H">z-extent</param>
 	/// <param name="scale">Some number such that L/scale, W/scale, and H/scale are all integers larger than the dimension. Default: 0.1f. </param>
 	Matrix3DLateralPBC(float L, float W, float H, float scale=10.f) : L{ L }, W{ W }, H{ H }, scale{ scale }{
-		
+		Ls = L * (double)scale;
+		Ws = W * (double)scale;
+		Hs = H * (double)scale;
+		WLs = Ls * Ws;
 	}
 	
 	void initialize() {
 		if (!init) {
-			Ls = L * scale;
-			Ws = W * scale;
-			Hs = H * scale;
-			WLs = Ls * Ws;
 			arr = (float*)malloc(sizeof(float) * Ls * Ws * Hs);
 			for (int i = 0; i < Ls * Ws * Hs; i++) {
 				arr[i] = 0;
@@ -177,8 +176,13 @@ public:
 		}
 	}
 
-	void save_file(const char* fname) {
-		cnpy::npy_save(fname, arr, { Ls, Ws, Hs });
+	bool save_file(const char* fname) {
+		if (init) {
+			cnpy::npy_save(fname, arr, { Hs, Ws, Ls });
+			return true;
+		}
+		return false;
+
 	}
 };
 

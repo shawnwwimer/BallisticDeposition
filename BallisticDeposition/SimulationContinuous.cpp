@@ -177,14 +177,6 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		timel += dural.count() / 1000;
 
 		if (VERBOSE) {
-			std::cout << "Particles: " << std::endl;
-			for (int i = 0; i < atoms.size(); i++) {
-				auto p = atoms[i];
-				std::cout << "\t(" << p[0] << ", " << p[2] << ")," << std::endl;// " with priority " << corridors.get_particle_priority(i) << std::endl;
-			}
-		}
-
-		if (VERBOSE) {
 			std::cout << "New particle collided at [" << collision->position[0] << ", " << collision->position[1] << ", " << collision->position[2] << "] ";
 			if (collision->idx > -1) {
 				std::cout << "with atom at [" << atoms[collision->idx][0] << ", " << atoms[collision->idx][1] << ", " << atoms[collision->idx][2] << "] " << std::endl;
@@ -471,6 +463,11 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	std::string filename = "structures/cts/STF_" + system + "_L" + len_str + "_Th" + theta_str + "_D" + diff_str + "_N" + std::to_string(params->deposited) + "_" + std::to_string(epoch_time);
 
 	// Save objects
+	zipFile zf = zipOpen64((filename + ".simc").c_str(), 0);
+	zipClose(zf, NULL);
+	int err;
+
+	// Grid
 	float* outGrid = (float*)malloc(sizeof(float) * reps * 6);
 	if (outGrid != NULL) {
 		for (int j = 0; j < atoms.size(); j++) {
@@ -481,34 +478,31 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		cnpy::npy_save("grid.npy", outGrid, { reps, 6 });
 		free(outGrid);
 	}
+	err = writeFileToZipCTS((filename + ".simc").c_str(), "grid.npy");
+	std::remove("grid.npy");
 
-	//potentials.save_file("potential.npy");
-	//region.save_file("region.npy");
+	// priority
 	corridors.save_file("priority.npy");
+	err = writeFileToZipCTS((filename + ".simc").c_str(), "priority.npy");
+	std::remove("priority.npy");
 
+	// Parameters
 	std::ofstream json_file;
 	json_file.open("params.json");
 	json_file << params->serialization;
 	json_file.close();
-
-	// Combine the files into one zip/npz file
-	zipFile zf = zipOpen64((filename + ".simc").c_str(), 0);
-	zipClose(zf, NULL);
-	int err = writeFileToZipCTS((filename + ".simc").c_str(), "grid.npy");
-	//err = writeFileToZip((filename + ".sim").c_str(), "structures/cts/diff.npy");
 	err = writeFileToZipCTS((filename + ".simc").c_str(), "params.json");
-	//err = writeFileToZipCTS((filename + ".simc").c_str(), "potential.npy");
-	err = writeFileToZipCTS((filename + ".simc").c_str(), "priority.npy");
-	//err = writeFileToZipCTS((filename + ".simc").c_str(), "region.npy");
-
-	// Remove the individual files
-	// TODO: combine the writeFileToZip function and the writing of npy files so clean up isn't necessary
-	std::remove("grid.npy");
-	//std::remove("structures/cts/diff.npy");
 	std::remove("params.json");
-	//std::remove("potential.npy");
-	std::remove("priority.npy");
-	//std::remove("region.npy");
+	
+	if (potentials.save_file("potential.npy")) {
+		err = writeFileToZipCTS((filename + ".simc").c_str(), "potential.npy");
+		std::remove("potential.npy");
+	}
+	
+	/*if (region.save_file("region.npy")) {
+		err = writeFileToZipCTS((filename + ".simc").c_str(), "region.npy");
+		std::remove("region.npy");
+	}*/
 
 	// Print the timing
 	std::cout << reps << " reps completed in " << time << " seconds; \n" << reps / time << " reps per second." << std::endl;
