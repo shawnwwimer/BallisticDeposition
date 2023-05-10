@@ -115,6 +115,10 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 							(*region(i, j, k))[2] = mag * ((float)kk) / r;*/
 							region(i, j, k) = mag;
 						}
+
+						if (r == 0) {
+							region(i, j, k) = 1e6;
+						}
 					}
 				}
 			}
@@ -263,14 +267,14 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		while (distance > 0) {
 			// first jump near minimum
 			current_minimum = collision->position;
-			float remaining_distance = (distance > (*radii)[0]) + 1/length_scale/2 ? 3*(*radii)[0] : distance - 1/length_scale/2;
+			float remaining_distance = (distance > (*radii)[0]) + 1/length_scale/2 ? (*radii)[0] : distance - 1/length_scale/2;
 			if (current_minimum[2] < 0) {
 				current_minimum[2] = (*radii)[0];
 			}
 			potentials.find_local_minimum(current_minimum, remaining_distance);
 			
 
-			for (float settle = 0/*1 / length_scale/2*/; settle > 0; settle -= step_size) {
+			for (float settle = 1 / length_scale/2; settle > 0; settle -= step_size) {
 				direction = { 0, 0, 0 };
 				std::vector<int>* neighbors = cubes.find_nearest_bin(current_minimum);
 				if (VERBOSE) {
@@ -334,7 +338,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 						std::cout << "to [" << current_minimum[0] << ", " << current_minimum[1] << ", " << current_minimum[2] << "] " << std::endl;
 					}
 
-					if (isnan(current_minimum[0]) || current_minimum[2] < 0) {
+					if (isnan(current_minimum[0]) || current_minimum[2] < (*radii)[0]) {
 						break;
 					}
 				}
@@ -494,10 +498,10 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	err = writeFileToZipCTS((filename + ".simc").c_str(), "params.json");
 	std::remove("params.json");
 	
-	if (potentials.save_file("potential.npy")) {
+	/*if (potentials.save_file("potential.npy")) {
 		err = writeFileToZipCTS((filename + ".simc").c_str(), "potential.npy");
 		std::remove("potential.npy");
-	}
+	}*/
 	
 	/*if (region.save_file("region.npy")) {
 		err = writeFileToZipCTS((filename + ".simc").c_str(), "region.npy");

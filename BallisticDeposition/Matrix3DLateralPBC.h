@@ -1,6 +1,7 @@
 #pragma once
 #include <stdlib.h>
 #include <array>
+#include <vector>
 #include <stdio.h>
 #include <string>
 #include <stdexcept>
@@ -16,6 +17,8 @@ private:
 	float scale;
 	size_t Ls, Ws, Hs, WLs;
 	bool init = false;
+	std::vector<std::array<float, 3>> points;
+	std::array<std::array<float, 3>, 128> minima;
 
 public:
 	/// <summary>
@@ -125,9 +128,9 @@ public:
 			throw std::out_of_range("Z coordinate out of range.");
 		}
 
-		int x = xyz[0] * scale;
-		int y = xyz[1] * scale;
-		int z = xyz[2] * scale;
+		int x = round(xyz[0] * scale);
+		int y = round(xyz[1] * scale);
+		int z = round(xyz[2] * scale);
 
 		/*if (x > L || x < 0) {
 			x = modulof(x, L);
@@ -140,13 +143,16 @@ public:
 		// initialize minimum
 		std::array<int, 3> minimum = { x, y, z };
 		float min_val = arr[x + y * Ls + z * WLs];
+		float min_distance2 = 0;
+		minima[0] = xyz;
+		int num_minima = 1;
 
 		// only search in the nearby cube of discretized radius
 		int rad_disc = radius * scale;
 		for (int k = -rad_disc; k < rad_disc; k++) {
 			// create and ignore out-of-range z-index, then update flat
 			int kk = z + k;
-			if (kk < 0 || kk > Hs) {
+			if (kk < 0 || kk > Hs - 1) {
 				continue;
 			}
 			int idxz = kk * WLs;
@@ -167,18 +173,369 @@ public:
 
 					// if it's the minimum update
 					if (arr[idxx] < min_val) {
+						min_distance2 = k * k + j * j + i * i;
 						min_val = arr[idxx];
 						minimum = { ii, jj, kk };
 						xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
 					}
+					else if (arr[idxx] == min_val) {
+						float distance2 = k * k + j * j + i * i;
+						if (distance2 < min_distance2) {
+							min_distance2 = distance2;
+							min_val = arr[idxx];
+							minimum = { ii, jj, kk };
+							xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						}
+					}
 				}
 			}
 		}
+
+		/*for (int k = 0; k < rad_disc; k++) {
+			// create and ignore out-of-range +z-index, then update flat
+			int kk = z + k;
+			if (kk > Hs - 1) {
+				continue;
+			}
+			int idxz = kk * WLs;
+			for (int j = 0; j < rad_disc; j++) {
+				// create and range +y-index, then update flat
+				int jj = y + j;
+				if (jj > Ws - 1) {
+					jj = modulof(jj, Ws);
+				}
+				int idxy = idxz + jj * Ls;
+				for (int i = 0; i < rad_disc; i++) {
+					// create and range +x-index, then update flat
+					int ii = x + i;
+					if (ii > Ls - 1) {
+						ii = modulof(ii, Ls);
+					}
+					int idxx = idxy + ii;
+
+					// if it's the minimum update
+					if (arr[idxx] < min_val) {
+						min_distance2 = k * k + j * j + i * i;
+						min_val = arr[idxx];
+						minimum = { ii, jj, kk };
+						xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						num_minima = 1;
+					}
+					else if (arr[idxx] == min_val) {
+						float distance2 = k * k + j * j + i * i;
+						if (distance2 < min_distance2) {
+							min_distance2 = distance2;
+							min_val = arr[idxx];
+							minimum = { ii, jj, kk };
+							xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima = 1;
+						}
+						else if (distance2 == min_distance2) {
+							minima[num_minima] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima += 1;
+						}
+					}
+
+					// create and range -x-index, then update flat
+					ii = x - i;
+					if (ii < 0) {
+						ii = modulof(ii, Ls);
+					}
+					idxx = idxy + ii;
+
+					// if it's the minimum update
+					if (arr[idxx] < min_val) {
+						min_distance2 = k * k + j * j + i * i;
+						min_val = arr[idxx];
+						minimum = { ii, jj, kk };
+						xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						num_minima = 1;
+					}
+					else if (arr[idxx] == min_val) {
+						float distance2 = k * k + j * j + i * i;
+						if (distance2 < min_distance2) {
+							min_distance2 = distance2;
+							min_val = arr[idxx];
+							minimum = { ii, jj, kk };
+							xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima = 1;
+						}
+						else if (distance2 == min_distance2) {
+							minima[num_minima] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima += 1;
+						}
+					}
+				}
+
+				// create and range -y-index, then update flat
+				jj = y - j;
+				if (jj < 0) {
+					jj = modulof(jj, Ws);
+				}
+				idxy = idxz + jj * Ls;
+				for (int i = 0; i < rad_disc; i++) {
+					// create and range +x-index, then update flat
+					int ii = x + i;
+					if (ii > Ls || ii < 0) {
+						ii = modulof(ii, Ls);
+					}
+					int idxx = idxy + ii;
+
+					// if it's the minimum update
+					if (arr[idxx] < min_val) {
+						min_distance2 = k * k + j * j + i * i;
+						min_val = arr[idxx];
+						minimum = { ii, jj, kk };
+						xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						num_minima = 1;
+					}
+					else if (arr[idxx] == min_val) {
+						float distance2 = k * k + j * j + i * i;
+						if (distance2 < min_distance2) {
+							min_distance2 = distance2;
+							min_val = arr[idxx];
+							minimum = { ii, jj, kk };
+							xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima = 1;
+						}
+						else if (distance2 == min_distance2) {
+							minima[num_minima] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima += 1;
+						}
+					}
+
+					// create and range -x-index, then update flat
+					ii = x - i;
+					if (ii > Ls || ii < 0) {
+						ii = modulof(ii, Ls);
+					}
+					idxx = idxy + ii;
+
+					// if it's the minimum update
+					if (arr[idxx] < min_val) {
+						min_distance2 = k * k + j * j + i * i;
+						min_val = arr[idxx];
+						minimum = { ii, jj, kk };
+						//xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						num_minima = 1;
+					}
+					else if (arr[idxx] == min_val) {
+						float distance2 = k * k + j * j + i * i;
+						if (distance2 < min_distance2) {
+							min_distance2 = distance2;
+							min_val = arr[idxx];
+							minimum = { ii, jj, kk };
+							//xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima = 1;
+						}
+						else if (distance2 == min_distance2) {
+							minima[num_minima] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima += 1;
+						}
+					}
+				}
+			}
+
+			// create and ignore out-of-range -z-index, then update flat
+			kk = z - k;
+			if (kk < 0) {
+				continue;
+			}
+			idxz = kk * WLs;
+			for (int j = 0; j < rad_disc; j++) {
+				// create and range +y-index, then update flat
+				int jj = y + j;
+				if (jj > Ws - 1) {
+					jj = modulof(jj, Ws);
+				}
+				int idxy = idxz + jj * Ls;
+				for (int i = 0; i < rad_disc; i++) {
+					// create and range +x-index, then update flat
+					int ii = x + i;
+					if (ii > Ls - 1) {
+						ii = modulof(ii, Ls);
+					}
+					int idxx = idxy + ii;
+
+					// if it's the minimum update
+					if (arr[idxx] < min_val) {
+						min_distance2 = k * k + j * j + i * i;
+						min_val = arr[idxx];
+						minimum = { ii, jj, kk };
+						//xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						num_minima = 1;
+					}
+					else if (arr[idxx] == min_val) {
+						float distance2 = k * k + j * j + i * i;
+						if (distance2 < min_distance2) {
+							min_distance2 = distance2;
+							min_val = arr[idxx];
+							minimum = { ii, jj, kk };
+							//xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima = 1;
+						}
+						else if (distance2 == min_distance2) {
+							minima[num_minima] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima += 1;
+						}
+					}
+
+					// create and range -x-index, then update flat
+					ii = x - i;
+					if (ii < 0) {
+						ii = modulof(ii, Ls);
+					}
+					idxx = idxy + ii;
+
+					// if it's the minimum update
+					if (arr[idxx] < min_val) {
+						min_distance2 = k * k + j * j + i * i;
+						min_val = arr[idxx];
+						minimum = { ii, jj, kk };
+						//xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						num_minima = 1;
+					}
+					else if (arr[idxx] == min_val) {
+						float distance2 = k * k + j * j + i * i;
+						if (distance2 < min_distance2) {
+							min_distance2 = distance2;
+							min_val = arr[idxx];
+							minimum = { ii, jj, kk };
+							//xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima = 1;
+						}
+						else if (distance2 == min_distance2) {
+							minima[num_minima] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima += 1;
+						}
+					}
+				}
+
+				// create and range -y-index, then update flat
+				jj = y - j;
+				if (jj < 0) {
+					jj = modulof(jj, Ws);
+				}
+				idxy = idxz + jj * Ls;
+				for (int i = 0; i < rad_disc; i++) {
+					// create and range +x-index, then update flat
+					int ii = x + i;
+					if (ii > Ls - 1) {
+						ii = modulof(ii, Ls);
+					}
+					int idxx = idxy + ii;
+
+					// if it's the minimum update
+					if (arr[idxx] < min_val) {
+						min_distance2 = k * k + j * j + i * i;
+						min_val = arr[idxx];
+						minimum = { ii, jj, kk };
+						//xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						num_minima = 1;
+					}
+					else if (arr[idxx] == min_val) {
+						float distance2 = k * k + j * j + i * i;
+						if (distance2 < min_distance2) {
+							min_distance2 = distance2;
+							min_val = arr[idxx];
+							minimum = { ii, jj, kk };
+							//xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima = 1;
+						}
+						else if (distance2 == min_distance2) {
+							minima[num_minima] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima += 1;
+						}
+					}
+
+					// create and range -x-index, then update flat
+					ii = x - i;
+					if (ii < 0) {
+						ii = modulof(ii, Ls);
+					}
+					idxx = idxy + ii;
+
+					// if it's the minimum update
+					if (arr[idxx] < min_val) {
+						min_distance2 = k * k + j * j + i * i;
+						min_val = arr[idxx];
+						minimum = { ii, jj, kk };
+						//xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						num_minima = 1;
+					}
+					else if (arr[idxx] == min_val) {
+						float distance2 = k * k + j * j + i * i;
+						if (distance2 < min_distance2) {
+							min_distance2 = distance2;
+							min_val = arr[idxx];
+							minimum = { ii, jj, kk };
+							//xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima = 1;
+						}
+						else if (distance2 == min_distance2) {
+							minima[num_minima] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima += 1;
+						}
+					}
+				}
+			}
+		}*/
+
+		/*for (int size = 1; size < rad_disc + 1; size++) {
+			for (int i = -x - size + 1; i < x + size; i++) {
+				int ii = i;
+				if (ii > Ls || ii < 0) {
+					ii = modulof(ii, Ls);
+				}
+				int idxx = ii;
+
+				for (int j = -y - size + 1; j < y + size; j++) {
+					int jj = j;
+					if (jj > Ws || jj < 0) {
+						jj = modulof(jj, Ws);
+					}
+					int idxy = idxx + jj * Ls;
+
+					for (int k = -z - size + 1; k < z + size; k++) {
+						if (k < 0 || k > Hs - 1) {
+							continue;
+						}
+
+						int idx = idxy + k * WLs;
+						// if it's the minimum update
+						if (arr[idx] < min_val) {
+							min_val = arr[idxx];
+							minimum = { ii, jj, k };
+							xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						}
+					}
+				}
+			}
+		}*/
+		points.push_back(xyz);
+		xyz = minima[num_minima - 1];
 	}
 
 	bool save_file(const char* fname) {
 		if (init) {
-			cnpy::npy_save(fname, arr, { Hs, Ws, Ls });
+			//cnpy::npy_save(fname, arr, { Hs, Ws, Ls });
+			cnpy::npy_save(fname, points);
 			return true;
 		}
 		return false;
