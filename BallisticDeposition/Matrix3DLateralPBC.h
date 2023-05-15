@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string>
 #include <stdexcept>
+#include <random>
 #include "cnpy.h"
 #include "math_utils.h"
 
@@ -28,7 +29,7 @@ public:
 	/// <param name="W">y-period</param>
 	/// <param name="H">z-extent</param>
 	/// <param name="scale">Some number such that L/scale, W/scale, and H/scale are all integers larger than the dimension. Default: 0.1f. </param>
-	Matrix3DLateralPBC(float L, float W, float H, float scale=10.f) : L{ L }, W{ W }, H{ H }, scale{ scale }{
+	Matrix3DLateralPBC(float L, float W, float H, float scale = 10.f) : L{ L }, W{ W }, H{ H }, scale{ scale }{
 		Ls = L * (double)scale;
 		Ws = W * (double)scale;
 		Hs = H * (double)scale;
@@ -123,7 +124,7 @@ public:
 	/// </summary>
 	/// <param name="xyz">Three-element float array of location in nm to be updated.</param>
 	/// <param name="radius">Radius in nm over which to search for minimum.</param>
-	void find_local_minimum(std::array<float, 3>& xyz, float radius) {
+	void find_local_minimum(std::array<float, 3>& xyz, float radius, float choice=1.f) {
 		if (xyz[2] > H || xyz[2] < 0 || isnan(xyz[2])) {
 			throw std::out_of_range("Z coordinate out of range.");
 		}
@@ -149,21 +150,21 @@ public:
 
 		// only search in the nearby cube of discretized radius
 		int rad_disc = radius * scale;
-		for (int k = -rad_disc; k < rad_disc; k++) {
+		for (int k = 0; k < rad_disc; k++) {
 			// create and ignore out-of-range z-index, then update flat
 			int kk = z + k;
 			if (kk < 0 || kk > Hs - 1) {
 				continue;
 			}
 			int idxz = kk * WLs;
-			for (int j = -rad_disc; j < rad_disc; j++) {
+			for (int j = rad_disc; j > -rad_disc-1; j--) {
 				// create and range y-index, then update flat
 				int jj = y + j;
 				if (jj > Ws || jj < 0) {
 					jj = modulof(jj, Ws);
 				}
 				int idxy = idxz + jj * Ls;
-				for (int i = -rad_disc; i < rad_disc; i++) {
+				for (int i = rad_disc; i > -rad_disc-1; i--) {
 					// create and range x-index, then update flat
 					int ii = x + i;
 					if (ii > Ls || ii < 0) {
@@ -177,6 +178,8 @@ public:
 						min_val = arr[idxx];
 						minimum = { ii, jj, kk };
 						xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						num_minima = 1;
 					}
 					else if (arr[idxx] == min_val) {
 						float distance2 = k * k + j * j + i * i;
@@ -185,11 +188,67 @@ public:
 							min_val = arr[idxx];
 							minimum = { ii, jj, kk };
 							xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima = 1;
+						}
+						else if (distance2 == min_distance2) {
+							minima[num_minima] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima += 1;
+						}
+					}
+				}
+			}
+
+			// create and ignore out-of-range z-index, then update flat
+			kk = z - k;
+			if (kk < 0 || kk > Hs - 1) {
+				continue;
+			}
+			idxz = kk * WLs;
+			for (int j = -rad_disc; j < rad_disc + 1; j++) {
+				// create and range y-index, then update flat
+				int jj = y + j;
+				if (jj > Ws || jj < 0) {
+					jj = modulof(jj, Ws);
+				}
+				int idxy = idxz + jj * Ls;
+				for (int i = rad_disc; i > -rad_disc - 1; i--) {
+					// create and range x-index, then update flat
+					int ii = x + i;
+					if (ii > Ls || ii < 0) {
+						ii = modulof(ii, Ls);
+					}
+					int idxx = idxy + ii;
+
+					// if it's the minimum update
+					if (arr[idxx] < min_val) {
+						min_distance2 = k * k + j * j + i * i;
+						min_val = arr[idxx];
+						minimum = { ii, jj, kk };
+						xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+						num_minima = 1;
+					}
+					else if (arr[idxx] == min_val) {
+						float distance2 = k * k + j * j + i * i;
+						if (distance2 < min_distance2) {
+							min_distance2 = distance2;
+							min_val = arr[idxx];
+							minimum = { ii, jj, kk };
+							xyz = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							minima[0] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima = 1;
+						}
+						else if (distance2 == min_distance2) {
+							minima[num_minima] = { minimum[0] / scale, minimum[1] / scale, minimum[2] / scale };
+							num_minima += 1;
 						}
 					}
 				}
 			}
 		}
+
+		uint32_t idx = (uint32_t)(floorf(choice * (num_minima)));
 
 		/*for (int k = 0; k < rad_disc; k++) {
 			// create and ignore out-of-range +z-index, then update flat
@@ -528,8 +587,10 @@ public:
 				}
 			}
 		}*/
+
+
 		points.push_back(xyz);
-		xyz = minima[num_minima - 1];
+		xyz = minima[idx];
 	}
 
 	bool save_file(const char* fname) {

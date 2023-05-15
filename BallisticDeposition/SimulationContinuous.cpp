@@ -73,6 +73,9 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	float R = 1;
 	float Vm = length_scale * (2 * (*radii)[0]);
 	float zero_pot = Vm / pow(2, 1.0 / 6.0);
+
+	
+
 	Matrix3DLateralPBC region = Matrix3DLateralPBC(2.f, 2.f, 2.f, length_scale);
 	Matrix3DLateralPBC potentials = Matrix3DLateralPBC(L, L, H, length_scale);
 	int diameter = region.get_Hs();
@@ -150,6 +153,9 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 
 	std::mt19937 gens(seed);
 	std::uniform_int_distribution<> sist(0, species->size());
+
+	std::mt19937 gend(seed + 1);
+	std::uniform_real_distribution<float> dist_d(0, L);
 
 	// Print how long it took
 	std::chrono::duration<double, std::milli> timep = std::chrono::high_resolution_clock::now() - start;
@@ -271,7 +277,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 			if (current_minimum[2] < 0) {
 				current_minimum[2] = (*radii)[0];
 			}
-			potentials.find_local_minimum(current_minimum, remaining_distance);
+			potentials.find_local_minimum(current_minimum, remaining_distance, 0);
 			
 
 			for (float settle = 1 / length_scale/2; settle > 0; settle -= step_size) {

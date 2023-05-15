@@ -11,14 +11,14 @@ int main()
     bool cts_simulation = true;
     if (cts_simulation) {
         float theta = 85;
-        float L = 32;
-        float H = 48;
-        uint32_t reps = 65536*4;
+        float L = 88;
+        float H = 24;
+        uint32_t reps = 65536*4*4;
         uint8_t bin_size = 2;
         uint32_t seed = 0;
-        float diffusion_length = 0.5;
+        float diffusion_length = 1;
         std::vector<int8_t> species = { 1 };
-        std::vector<float> radii = { 0.111 };
+        std::vector<float> radii = { 0.147 }; // Si: 0.111; Ag: 0.144; Ti: 0.147
         std::vector<std::vector<float>> weights = { {{1, .1}, {.1, 1}} };
         std::vector<std::vector<float>> inputGrid = { {0} };
         ContinuousSimulationParametersFull params;
