@@ -6,31 +6,53 @@
 #include "Simulation3D.h"
 #include "SimulationContinuous.h"
 
+// should be modified to take radius into account
+float estimate_binsize(float flux_angle, float radius) {
+    if (flux_angle < 45) {
+        return 1.f;
+    }
+    else if (flux_angle <= 85.f) {
+        return 2.f;
+    }
+    else if (flux_angle < 89.f) {
+        return 8.f;
+    }
+    else {
+        return 8.f;
+    }
+}
+
 int main()
 {
     bool cts_simulation = true;
     if (cts_simulation) {
         float theta = 85;
-        float L = 88;
-        float H = 24;
-        uint32_t reps = 65536*4*4;
-        uint8_t bin_size = 2;
-        uint32_t seed = 0;
-        float diffusion_length = 1;
+        float L = 96;
+        float H = 128;
+        uint32_t reps = 65536*16*2;
+        uint8_t bin_size = 4;
+        uint32_t seed = 1277363101;
+        float diffusion_length = 0;
         std::vector<int8_t> species = { 1 };
         std::vector<float> radii = { 0.147 }; // Si: 0.111; Ag: 0.144; Ti: 0.147
         std::vector<std::vector<float>> weights = { {{1, .1}, {.1, 1}} };
-        std::vector<std::vector<float>> inputGrid = { {0} };
+        std::vector<std::vector<float>> inputGrid;
         ContinuousSimulationParametersFull params;
         std::string system = "Si";
 
-        std::vector<float> thetas = { 85 };
-        for (float t : thetas) {
-            std::cout << "Deposition at " << t << std::endl;
-            obliqueDepositionContinuous(t, L, H, reps, bin_size, seed, diffusion_length, 25, &species, &radii, &weights, inputGrid, &params, system);
-            params.clearLayers();
+        std::vector<float> thetas = { 80, 82, 84, 85, 86, 88 };
+        std::vector<uint32_t> repss = { 65536 * 16, 65536 * 16 * 2 };
+        std::vector<float> diffs = { 1.0 };
+        for (float d : diffs) {
+            for (float t : thetas) {
+                if ((t < 86 && t >= 80  && d < 0.6) or (t == 88 && d < 0.5)) {
+                    continue;
+                }
+                std::cout << "Deposition at " << t << " and " << d << " nm diffusion length." << std::endl;
+                obliqueDepositionContinuous(t, L, H, reps, estimate_binsize(t, radii[0]), seed, d, 10, &species, &radii, &weights, inputGrid, &params, system);
+                params.clearLayers();
+            }
         }
-        
     }
     else {
         float theta = 85;

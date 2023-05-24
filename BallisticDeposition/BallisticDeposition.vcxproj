@@ -116,13 +116,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>../lib/zlib;../lib/cnpy;../lib/minizip;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../lib/zlib;../lib/cnpy;../lib/minizip;../lib/nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../lib/zlib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../lib/zlib; ../lib/nlopt</AdditionalLibraryDirectories>
+      <AdditionalDependencies>zlibstatic.lib; nlopt_debug.lib; %(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -133,15 +133,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>../lib/zlib; ../lib/cnpy; ../lib/minizip</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../lib/zlib;../lib/cnpy;../lib/minizip;../lib/nlopt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../lib/zlib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>zlibstatic.lib; %(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../lib/zlib; ../lib/nlopt</AdditionalLibraryDirectories>
+      <AdditionalDependencies>zlibstatic.lib; nlopt_release.lib; %(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -150,6 +150,7 @@
     <ClCompile Include="..\lib\minizip\unzip.c" />
     <ClCompile Include="..\lib\minizip\zip.c" />
     <ClCompile Include="BallisticDeposition.cpp" />
+    <ClCompile Include="CubicSpacePartition.cpp" />
     <ClCompile Include="math_utils.cpp" />
     <ClCompile Include="Matrix3DLateralPBC.cpp" />
     <ClCompile Include="Simulation3D.cpp" />
@@ -165,6 +166,8 @@
     <ClInclude Include="..\lib\minizip\ioapi.h" />
     <ClInclude Include="..\lib\minizip\unzip.h" />
     <ClInclude Include="..\lib\minizip\zip.h" />
+    <ClInclude Include="..\lib\NLopt\nlopt.h" />
+    <ClInclude Include="..\lib\NLopt\nlopt.hpp" />
     <ClInclude Include="..\lib\zlib\zconf.h" />
     <ClInclude Include="..\lib\zlib\zlib.h" />
     <ClInclude Include="CubicSpacePartition.h" />

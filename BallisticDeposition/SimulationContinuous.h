@@ -8,6 +8,8 @@
 #include <random>
 #include <chrono>
 
+#include "nlopt.hpp"
+
 #include "SimulationParameters.h"
 #include "SlantedCorridors.h"
 #include "CubicSpacePartition.h"

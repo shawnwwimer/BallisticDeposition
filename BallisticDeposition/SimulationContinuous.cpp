@@ -62,24 +62,20 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 
 	SlantedCorridors corridors = SlantedCorridors(L, H, theta, bin_size);
 
-	CubicSpacePartition cubes = CubicSpacePartition(L, H, 2.0);
+	CubicSpacePartition cubes = CubicSpacePartition(L, H, &atoms, 2.0);
 	float s = 2*(*radii)[0] / pow(2, 1.0 / 6.0);
 	float s6 = pow(s, 6);
 	float s12 = pow(s6, 2);
-
-	
 
 	float A = 1;
 	float R = 1;
 	float Vm = length_scale * (2 * (*radii)[0]);
 	float zero_pot = Vm / pow(2, 1.0 / 6.0);
 
-	
-
 	Matrix3DLateralPBC region = Matrix3DLateralPBC(2.f, 2.f, 2.f, length_scale);
 	Matrix3DLateralPBC potentials = Matrix3DLateralPBC(L, L, H, length_scale);
 	int diameter = region.get_Hs();
-	if (diffusion_length > 0) {
+	if (diffusion_length > 0 && false) {
 		region.initialize();
 		potentials.initialize();
 		for (int k = 0; k < diameter; k++) {
@@ -143,6 +139,23 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		target.push_back(0.01);
 	}
 
+	// Populate from input grid
+	
+	float current_fiber_id = 1;
+	int n = 0;
+	if (inputGrid.size() > 0) {
+		for (auto atom : inputGrid) {
+			if (atom[5] + 1 > current_fiber_id) {
+				current_fiber_id = atom[5] + 1;
+			}
+			std::array<float, 3> position = { atom[0], atom[1], atom[2] };
+			atoms.push_back(atom);
+			corridors.add_to_bins(&position, atom[4], n);
+			cubes.add_to_bins(n, position);
+			n++;
+		}
+	}
+
 	// Create random number generator
 	if (seed == 0) {
 		std::random_device rd;
@@ -166,7 +179,6 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	int update = (reps > 128) ? 128 : 1; // number of printed updates
 	std::array<float, 3> dest;
 	std::vector<float> new_atom;
-	float current_fiber_id = 1;
 	float fiber = 0;
 	double timel = 0;
 	double timed = 0;
@@ -270,13 +282,22 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 			distance -= step_size;
 		}*/
 
+		if (n > 4110) {
+			n++;
+			n--;
+		}
+
 		while (distance > 0) {
-			// first jump near minimum
+			// start from current position
 			current_minimum = collision->position;
-			float remaining_distance = (distance > (*radii)[0]) + 1/length_scale/2 ? (*radii)[0] : distance - 1/length_scale/2;
+			float remaining_distance = distance > 2*(*radii)[0] ? 2*(*radii)[0] : distance;
 			if (current_minimum[2] < 0) {
 				current_minimum[2] = (*radii)[0];
 			}
+			std::vector<double>* minimum = cubes.find_local_minimum(current_minimum, distance);
+			collision->position = { modulof((float)(*minimum)[0], L), modulof((float)(*minimum)[1], L), (float)(*minimum)[2] };
+			/*
+			// first jump near minimum
 			potentials.find_local_minimum(current_minimum, remaining_distance, 0);
 			
 
@@ -362,7 +383,9 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 				collision->position[1] = current_minimum[1];
 				collision->position[2] = current_minimum[2];
 			}
-			distance -= remaining_distance + 1 / length_scale/2;
+			*/
+			distance -= remaining_distance;
+			
 		}
 		//collision->position = current_minimum;
 		
@@ -407,7 +430,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		cubes.add_to_bins(n, collision->position);
 
 		// Update potentials
-		if (diffusion_length > 0) {
+		if (diffusion_length > 0 && false) {
 			potentials.scaled_point(collision->position, center);
 			for (int k = -diameter / 2; k < diameter / 2; k++) {
 				int kk = center[2] + k;

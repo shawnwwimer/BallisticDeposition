@@ -2,6 +2,9 @@
 #include <vector>
 #include <array>
 
+#include <nlopt.hpp>
+
+
 class CubicSpacePartition
 {
 private:
@@ -11,17 +14,22 @@ private:
 	int bins_on_side;
 	int bins_num;
 	std::vector<std::vector<int>> bins;
-
-	
+	std::vector<std::vector<float>>* atoms;
+	nlopt::opt opt = nlopt::opt(nlopt::LD_AUGLAG, 3);
+	std::vector<double> minimization_result = { 0, 0, 0 };
 	
 public:
-	CubicSpacePartition(float L, float H, float cube_size = 2.0f) : L{ L }, H{ H }, cube_size{ cube_size }{
+	CubicSpacePartition(float L, float H, std::vector<std::vector<float>>* atoms, float cube_size = 2.0f) : L{ L }, H{ H }, cube_size{ cube_size }, atoms{ atoms }{
 		bins_on_side = L / cube_size * 2;
 		bins_num = bins_on_side * bins_on_side * H / cube_size * 2;
 		for (int i = 0; i < bins_num; i++) {
 			std::vector<int>* b = new std::vector<int>;
 			bins.push_back(*b);
 		}
+
+		// Set stopping criteria
+		opt.set_xtol_abs(1e-4);
+		opt.set_maxeval(400);
 	}
 
 	void add_to_bins(int idx, std::array<float, 3> position) {
@@ -76,4 +84,6 @@ public:
 		int zidx = round(nz);
 		return &bins[zidx * bins_on_side * bins_on_side + yidx * bins_on_side + xidx];
 	}
+
+	std::vector<double>* find_local_minimum(std::array<float, 3> position, float distance);
 };
