@@ -55,10 +55,29 @@ int writeFileToZipCTS(const char* zipname, const char* filename)
 	return error;
 }
 
-int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system)
+int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method)
 {
+	switch (diffusion_method) {
+	case DiffusionMethod::PotentialHoppingLUT:
+		std::cout << "Deposition at " << theta << " and " << diffusion_length << " nm diffusion length by hopping." << std::endl;
+		break;
+	case DiffusionMethod::HopAndSettleLUT:
+		std::cout << "Deposition at " << theta << " and " << diffusion_length << " nm diffusion length by hopping and settling." << std::endl;
+		break;
+	case DiffusionMethod::ForcePushingLUT:
+		std::cout << "Deposition at " << theta << " and " << diffusion_length << " nm diffusion length by settling." << std::endl;
+		break;
+	case DiffusionMethod::NumericalMinimization:
+		std::cout << "Deposition at " << theta << " and " << diffusion_length << " nm diffusion length by numerical minimization." << std::endl;
+		break;
+	default:
+		std::cout << "Deposition at " << theta << " and " << diffusion_length << " nm diffusion length by unknown method." << std::endl;
+		break;
+	}
+
 	auto start = std::chrono::high_resolution_clock::now();
 	std::vector<std::vector<float>> atoms;
+	std::vector<std::vector<float>> diffusion_lengths;
 
 	SlantedCorridors corridors = SlantedCorridors(L, H, theta, bin_size);
 
@@ -72,10 +91,10 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	float Vm = length_scale * (2 * (*radii)[0]);
 	float zero_pot = Vm / pow(2, 1.0 / 6.0);
 
-	Matrix3DLateralPBC region = Matrix3DLateralPBC(2.f, 2.f, 2.f, length_scale);
+	Matrix3DLateralPBC region = Matrix3DLateralPBC(2.f + 1/length_scale, 2.f + 1 / length_scale, 2.f + 1 / length_scale, length_scale);
 	Matrix3DLateralPBC potentials = Matrix3DLateralPBC(L, L, H, length_scale);
 	int diameter = region.get_Hs();
-	if (diffusion_length > 0 && false) {
+	if (diffusion_length > 0 && (diffusion_method == DiffusionMethod::PotentialHoppingLUT || diffusion_method == DiffusionMethod::HopAndSettleLUT)) {
 		region.initialize();
 		potentials.initialize();
 		for (int k = 0; k < diameter; k++) {
@@ -140,7 +159,6 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	}
 
 	// Populate from input grid
-	
 	float current_fiber_id = 1;
 	int n = 0;
 	if (inputGrid.size() > 0) {
@@ -168,7 +186,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	std::uniform_int_distribution<> sist(0, species->size());
 
 	std::mt19937 gend(seed + 1);
-	std::uniform_real_distribution<float> dist_d(0, L);
+	std::uniform_real_distribution<float> dist_d(0, 1);
 
 	// Print how long it took
 	std::chrono::duration<double, std::milli> timep = std::chrono::high_resolution_clock::now() - start;
@@ -178,11 +196,13 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	start = std::chrono::high_resolution_clock::now();
 	int update = (reps > 128) ? 128 : 1; // number of printed updates
 	std::array<float, 3> dest;
+	std::array<float, 3> landing_position;
 	std::vector<float> new_atom;
 	float fiber = 0;
 	double timel = 0;
 	double timed = 0;
 	for (int n = 0; n < reps; n++) {
+		
 		auto startl = std::chrono::high_resolution_clock::now();
 
 		// Generate 
@@ -208,122 +228,142 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 			}
 		}
 
+		landing_position = collision->position;
+
+		//if (n == 50632) {
+		//	printf("jesus");
+		//}
+
 		// DIFFUSION
 		auto startd = std::chrono::high_resolution_clock::now();
 		//std::array<float, 3> force = { 0, 0, 0 };
 		float force_mag = 0;
 		float distance = diffusion_length;
 		float step_size = 0.01;
-		/*while (distance > 0) {
-			direction = { 0, 0, 0 };
-			std::vector<int>* neighbors = cubes.find_nearest_bin(collision->position);
-			if (VERBOSE) {
-				std::cout << "Found " << neighbors->size() << " neighbors";
-			}
-			for (auto p : *neighbors) {
-				float dist2 = pow(atoms[p][0] - collision->position[0], 2) + pow(atoms[p][1] - collision->position[1], 2) + pow(atoms[p][2] - collision->position[2], 2);
-				float r = sqrt(dist2);
-				float r6 = pow(dist2, 3);
-				float r12 = pow(r6, 2);
-				force_mag =  (2/r) *  (2*s12 / r12 - s6 / r6);
-				direction[0] += (collision->position[0] - atoms[p][0]) / r * force_mag;
-				direction[1] += (collision->position[1] - atoms[p][1]) / r * force_mag;
-				direction[2] += (collision->position[2] - atoms[p][2]) / r * force_mag;
-			}
-			if (collision->position[2] < 2) {
-				float r = collision->position[2];
-				float r6 = pow(r, 6);
-				float r12 = pow(r6, 2);
-				force_mag = (2 / r) * (2 * s12 / r12 - s6 / r6);
-				direction[2] += force_mag;
-			}
-			force_mag = sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
+		
+		// this branch is for diffusion that uses a LUT for the potential of a test particle
+		if (diffusion_method == DiffusionMethod::PotentialHoppingLUT || diffusion_method == DiffusionMethod::HopAndSettleLUT) {
+			while (distance > 0) {
+				// start from current position
+				current_minimum = collision->position;
+				float remaining_distance = distance > 2 * (*radii)[0] ? 2 * (*radii)[0] : distance;
+				if (current_minimum[2] < 0) {
+					current_minimum[2] = (*radii)[0];
+				}
+				// first jump near minimum
+				potentials.find_local_minimum(current_minimum, remaining_distance, dist_d(gend));
 
-			if (VERBOSE) {
-				std::cout << "\tForce: " << force_mag << "\tDirection: [" << direction[0] << ", " << direction[1] << ", " << direction[2] << "]; ";
-			}
-			
-			if (force_mag != 0) {
-				if (force_mag < 1) {
-					collision->position[0] += step_size * direction[0];
-					collision->position[1] += step_size * direction[1];
-					collision->position[2] += step_size * direction[2];
-					if (VERBOSE) {
-						std::cout << "Traveled " << step_size * force_mag << " nm ";
+				if (diffusion_method == DiffusionMethod::HopAndSettleLUT) {
+					for (float settle = 1 / length_scale / 2; settle > 0; settle -= step_size) {
+						direction = { 0, 0, 0 };
+						std::vector<int>* neighbors = cubes.find_nearest_bin(current_minimum);
+						if (VERBOSE) {
+							std::cout << "Found " << neighbors->size() << " neighbors";
+						}
+						for (auto p : *neighbors) {
+							float dist2 = pow(atoms[p][0] - current_minimum[0], 2) + pow(atoms[p][1] - current_minimum[1], 2) + pow(atoms[p][2] - current_minimum[2], 2);
+							float r = sqrt(dist2);
+							float r6 = pow(dist2, 3);
+							float r12 = pow(r6, 2);
+							force_mag = -(2 / r) * (s6 / r6 - 2 * s12 / r12);
+							direction[0] += (current_minimum[0] - atoms[p][0]) / r * force_mag;
+							direction[1] += (current_minimum[1] - atoms[p][1]) / r * force_mag;
+							direction[2] += (current_minimum[2] - atoms[p][2]) / r * force_mag;
+						}
+						if (current_minimum[2] < (*radii)[0] && direction[2] < 0) {
+							direction = { 0, 0, 1 };
+						}
+						else if (current_minimum[2] < 2) {
+							float r = current_minimum[2] + (*radii)[0];
+							float r6 = pow(r, 6);
+							float r12 = pow(r6, 2);
+							force_mag = (2 / r) * (s6 / r6 - 2 * s12 / r12);
+							direction[2] += force_mag;
+						}
+						force_mag = sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
+
+						if (VERBOSE) {
+							std::cout << "\tForce: " << force_mag << "\tDirection: [" << direction[0] << ", " << direction[1] << ", " << direction[2] << "]; ";
+						}
+
+						if (force_mag != 0) {
+							if (force_mag < 1) {
+								current_minimum[0] += step_size * direction[0];
+								current_minimum[1] += step_size * direction[1];
+								current_minimum[2] += step_size * direction[2];
+								if (VERBOSE) {
+									std::cout << "Traveled " << step_size * force_mag << " nm ";
+								}
+							}
+							else {
+								current_minimum[0] += step_size * direction[0] / force_mag;
+								current_minimum[1] += step_size * direction[1] / force_mag;
+								current_minimum[2] += step_size * direction[2] / force_mag;
+								if (VERBOSE) {
+									std::cout << "Traveled " << step_size << " nm ";
+								}
+							}
+							if (current_minimum[0] < 0) {
+								current_minimum[0] += L;
+							}
+							else if (current_minimum[0] > L) {
+								current_minimum[0] -= L;
+							}
+							if (current_minimum[1] < 0) {
+								current_minimum[1] += L;
+							}
+							else if (current_minimum[1] > L) {
+								current_minimum[1] -= L;
+							}
+							if (VERBOSE) {
+								std::cout << "to [" << current_minimum[0] << ", " << current_minimum[1] << ", " << current_minimum[2] << "] " << std::endl;
+							}
+						}
+						else if (VERBOSE) {
+							std::cout << std::endl;
+						}
 					}
+				}
+				
+				// quit early if we're not moving
+				if (current_minimum[0] == collision->position[0] && current_minimum[1] == collision->position[1] && current_minimum[2] == collision->position[2]) {
+					break;
+				}
+				else if (isnan(current_minimum[0]) || current_minimum[2] < (*radii)[0]) {
+					break;
 				}
 				else {
-					collision->position[0] += step_size * direction[0] / force_mag;
-					collision->position[1] += step_size * direction[1] / force_mag;
-					collision->position[2] += step_size * direction[2] / force_mag;
-					if (VERBOSE) {
-						std::cout << "Traveled " << step_size << " nm ";
-					}
+					collision->position[0] = current_minimum[0];
+					collision->position[1] = current_minimum[1];
+					collision->position[2] = current_minimum[2];
 				}
-				if (collision->position[0] < 0) {
-					collision->position[0] += L;
-				}
-				else if (collision->position[0] > L) {
-					collision->position[0] -= L;
-				}
-				if (collision->position[1] < 0) {
-					collision->position[1] += L;
-				}
-				else if (collision->position[1] > L) {
-					collision->position[1] -= L;
-				}
-				if (VERBOSE) {
-					std::cout << "to [" << collision->position[0] << ", " << collision->position[1] << ", " << collision->position[2] << "] " << std::endl;
-				}
+				distance -= remaining_distance;
 			}
-			else if (VERBOSE) {
-				std::cout << std::endl;
-			}
-			distance -= step_size;
-		}*/
-
-		if (n > 4110) {
-			n++;
-			n--;
 		}
-
-		while (distance > 0) {
-			// start from current position
-			current_minimum = collision->position;
-			float remaining_distance = distance > 2*(*radii)[0] ? 2*(*radii)[0] : distance;
-			if (current_minimum[2] < 0) {
-				current_minimum[2] = (*radii)[0];
-			}
-			std::vector<double>* minimum = cubes.find_local_minimum(current_minimum, distance);
-			collision->position = { modulof((float)(*minimum)[0], L), modulof((float)(*minimum)[1], L), (float)(*minimum)[2] };
-			/*
-			// first jump near minimum
-			potentials.find_local_minimum(current_minimum, remaining_distance, 0);
-			
-
-			for (float settle = 1 / length_scale/2; settle > 0; settle -= step_size) {
+		// this branch is for diffusion that directly implements the force without a LUT
+		else if (diffusion_method == DiffusionMethod::ForcePushingLUT) {
+			while (distance > 0) {
+				current_minimum = collision->position;
 				direction = { 0, 0, 0 };
 				std::vector<int>* neighbors = cubes.find_nearest_bin(current_minimum);
 				if (VERBOSE) {
 					std::cout << "Found " << neighbors->size() << " neighbors";
 				}
 				for (auto p : *neighbors) {
-					float dist2 = pow(atoms[p][0] - current_minimum[0], 2) + pow(atoms[p][1] - current_minimum[1], 2) + pow(atoms[p][2] - current_minimum[2], 2);
+					float dist2 = pow(atoms[p][0] - collision->position[0], 2) + pow(atoms[p][1] - collision->position[1], 2) + pow(atoms[p][2] - collision->position[2], 2);
 					float r = sqrt(dist2);
 					float r6 = pow(dist2, 3);
 					float r12 = pow(r6, 2);
-					force_mag = -(2 / r) * (s6 / r6 - 2 * s12 / r12);
-					direction[0] += (current_minimum[0] - atoms[p][0]) / r * force_mag;
-					direction[1] += (current_minimum[1] - atoms[p][1]) / r * force_mag;
-					direction[2] += (current_minimum[2] - atoms[p][2]) / r * force_mag;
+					force_mag = (2 / r) * (2 * s12 / r12 - s6 / r6);
+					direction[0] += (collision->position[0] - atoms[p][0]) / r * force_mag;
+					direction[1] += (collision->position[1] - atoms[p][1]) / r * force_mag;
+					direction[2] += (collision->position[2] - atoms[p][2]) / r * force_mag;
 				}
-				if (current_minimum[2] < (*radii)[0] && direction[2] < 0) {
-					direction = { 0, 0, 1 };
-				} else if (current_minimum[2] < 2) {
-					float r = current_minimum[2] + (*radii)[0];
+				if (current_minimum[2] < 2) {
+					float r = current_minimum[2];
 					float r6 = pow(r, 6);
 					float r12 = pow(r6, 2);
-					force_mag = (2 / r) * (s6 / r6 - 2 * s12 / r12);
+					force_mag = (2 / r) * (2 * s12 / r12 - s6 / r6);
 					direction[2] += force_mag;
 				}
 				force_mag = sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
@@ -372,45 +412,38 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 				else if (VERBOSE) {
 					std::cout << std::endl;
 				}
-			}
 
-			// quit early if we're not moving
-			if (current_minimum[0] == collision->position[0] && current_minimum[1] == collision->position[1] && current_minimum[2] == collision->position[2]) {
-				break;
+				// quit early if we're not moving
+				if (current_minimum[0] == collision->position[0] && current_minimum[1] == collision->position[1] && current_minimum[2] == collision->position[2]) {
+					break;
+				}
+				else {
+					collision->position[0] = current_minimum[0];
+					collision->position[1] = current_minimum[1];
+					collision->position[2] = current_minimum[2];
+				}
+				distance -= step_size;
 			}
-			else {
-				collision->position[0] = current_minimum[0];
-				collision->position[1] = current_minimum[1];
-				collision->position[2] = current_minimum[2];
-			}
-			*/
-			distance -= remaining_distance;
-			
 		}
-		//collision->position = current_minimum;
-		
+		// this branch is for diffusion that numerically minimizes the potential
+		else if (diffusion_method == DiffusionMethod::NumericalMinimization) {
+			while (distance > 0) {
+				// start from current position
+				current_minimum = collision->position;
+				float remaining_distance = distance > 2 * (*radii)[0] ? 2 * (*radii)[0] : distance;
+				if (current_minimum[2] < 0) {
+					current_minimum[2] = (*radii)[0];
+				}
+				std::vector<double>* minimum = cubes.find_local_minimum(current_minimum, distance);
+				collision->position = { modulof((float)(*minimum)[0], L), modulof((float)(*minimum)[1], L), (float)(*minimum)[2] };
+				distance -= remaining_distance;
+			}
+		}
 
 		if (VERBOSE) {
 			std::cout << "Particle stuck at [" << collision->position[0] << ", " << collision->position[1] << ", " << collision->position[2] << "] " << std::endl;
 		}
-		
-		
-		/*if (diffusion_length > 0) {
-			scaled_position[0] = modulof(collision->position[0] * length_scale, L);
-			scaled_position[1] = modulof(collision->position[1] * length_scale, L);
-			scaled_position[2] = collision->position[2] * length_scale;
 
-			int remaining_distance = steps;
-			while (remaining_distance > 0) {
-				int it = (remaining_distance > rads) ? remaining_distance : it;
-				remaining_distance -= it;
-
-				int minx = scaled_position[0] - it;
-				int miny = scaled_position[1] - it;
-				int minz = scaled_position[2] - it;
-			}
-
-		}*/
 		std::chrono::duration<double, std::milli> durad = std::chrono::high_resolution_clock::now() - startd;
 		timed += durad.count() / 1000;
 
@@ -428,9 +461,10 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		atoms.push_back(new_atom);
 		corridors.add_to_bins(&collision->position, (*radii)[sp], n);
 		cubes.add_to_bins(n, collision->position);
+		diffusion_lengths.push_back({ landing_position[0] - collision->position[0], landing_position[1] - collision->position[1], landing_position[2] - collision->position[2] });
 
 		// Update potentials
-		if (diffusion_length > 0 && false) {
+		if (diffusion_length > 0 && (diffusion_method == DiffusionMethod::PotentialHoppingLUT || diffusion_method == DiffusionMethod::HopAndSettleLUT)) {
 			potentials.scaled_point(collision->position, center);
 			for (int k = -diameter / 2; k < diameter / 2; k++) {
 				int kk = center[2] + k;
@@ -477,7 +511,9 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	layer_params->system = system;
 	layer_params->seed = seed;
 	layer_params->bin_size = bin_size;
+	layer_params->length_scale = length_scale;
 	layer_params->cube_size = 2.0f;
+	layer_params->diffusion_method = (int)diffusion_method;
 	layer_params->time_taken = time;
 	layer_params->time_finished = epoch_time;
 	params->addLayer(layer_params);
@@ -518,6 +554,24 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	corridors.save_file("priority.npy");
 	err = writeFileToZipCTS((filename + ".simc").c_str(), "priority.npy");
 	std::remove("priority.npy");
+
+	// diffusion distances
+	float* diffout = (float*)malloc(sizeof(float) * reps * 3);
+	for (int i = 0; i < reps; i ++) {
+		for (int j = 0; j < 3; j++) {
+			if (diffusion_lengths[i][j] < -L/2) {
+				diffusion_lengths[i][j] += L;
+			}
+			else if (diffusion_lengths[i][j] > L/2){
+				diffusion_lengths[i][j] -= L;
+			}
+			diffout[i * 3 + j] = diffusion_lengths[i][j];
+		}
+	}
+	cnpy::npy_save("diffusion.npy", diffout, { reps, 3 });
+	free(diffout);
+	err = writeFileToZipCTS((filename + ".simc").c_str(), "diffusion.npy");
+	std::remove("diffusion.npy");
 
 	// Parameters
 	std::ofstream json_file;

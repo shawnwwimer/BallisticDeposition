@@ -72,7 +72,9 @@ public:
 	// Simulation parameters
 	uint32_t seed;
 	uint8_t bin_size;
+	float length_scale;
 	float cube_size;
+	int diffusion_method;
 
 	// Timing
 	double time_taken;

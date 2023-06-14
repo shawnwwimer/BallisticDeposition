@@ -192,10 +192,15 @@ void ContinuousSimulationParametersFull::serialize() {
 			}
 		}
 		serialization += "\"bin size\": " + std::to_string(p->bin_size) + ", ";
+		std::string scale_str = std::to_string(p->length_scale);
+		scale_str.erase(scale_str.find_last_not_of('0') + 1, std::string::npos);
+		scale_str.erase(scale_str.find_last_not_of('.') + 1, std::string::npos);
+		serialization += "\"length scale\": " + scale_str + ", ";
 		std::string cube_str = std::to_string(p->cube_size);
 		cube_str.erase(cube_str.find_last_not_of('0') + 1, std::string::npos);
 		cube_str.erase(cube_str.find_last_not_of('.') + 1, std::string::npos);
 		serialization += "\"cube size\": " + cube_str + ", ";
+		serialization += "\"diffusion method\": " + std::to_string(p->diffusion_method) + ", ";
 		serialization += "\"repetition\": " + std::to_string(p->repetitions) + ", ";
 		serialization += "\"Seed\": " + std::to_string(p->seed) + ", ";
 		serialization += "\"Time taken\": " + std::to_string(p->time_taken) + ", ";

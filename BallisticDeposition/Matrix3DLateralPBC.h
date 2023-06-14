@@ -39,10 +39,12 @@ public:
 	void initialize() {
 		if (!init) {
 			arr = (float*)malloc(sizeof(float) * Ls * Ws * Hs);
-			for (int i = 0; i < Ls * Ws * Hs; i++) {
-				arr[i] = 0;
+			if (arr != nullptr) {
+				for (int i = 0; i < Ls * Ws * Hs; i++) {
+					arr[i] = 0;
+				}
+				init = true;
 			}
-			init = true;
 		}
 	}
 
