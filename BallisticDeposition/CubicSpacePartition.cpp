@@ -27,13 +27,7 @@ double local_potential(unsigned n, const double* x, double* grad, void* my_func_
 
 std::vector<double>* CubicSpacePartition::find_local_minimum(std::array<float, 3> position, float distance) {
 	// Get the bin
-	float nx = position[0] / cube_size * 2;
-	float ny = position[1] / cube_size * 2;
-	float nz = position[2] / cube_size * 2;
-	int xidx = round(nx);
-	int yidx = round(ny);
-	int zidx = round(nz);
-	std::vector<int>* bin = &bins[zidx * bins_on_side * bins_on_side + yidx * bins_on_side + xidx];
+	std::vector<int>* bin = find_nearest_bin(position);
 
 	// Build list of neighbor positions
 	std::vector<std::vector<float>> neighbors;
