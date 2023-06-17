@@ -28,4 +28,16 @@ enum class DiffusionMethod {
 	NumericalMinimization = 3,
 };
 
-int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method);
+// The grid and params are always saved
+// Defaults:
+//   destinations and collisions: true
+//   atomic_potential, volume_potential, and priority: false
+struct FilesToSave {
+	bool destinations = true;
+	bool collisions = true;
+	bool atomic_potential = false;
+	bool volume_potential = false;
+	bool priority = false;
+};
+
+int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method, FilesToSave * save);

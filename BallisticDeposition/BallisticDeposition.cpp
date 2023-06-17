@@ -28,10 +28,11 @@ int main()
     if (cts_simulation) {
         float theta = 85;
         float L = 96;
-        float H = 128;
-        uint32_t reps = 65536*16*2;
-        uint8_t bin_size = 4;
-        uint32_t seed = 1277363101;
+        float H = 128+64;
+
+        uint32_t reps = 1e6;
+        uint8_t bin_size = 2;
+        uint32_t seed = 0;//1277363101;
         float diffusion_length = 0;
         std::vector<int8_t> species = { 1 };
         std::vector<float> radii = { 0.147 }; // Si: 0.111; Ag: 0.144; Ti: 0.147
@@ -41,15 +42,38 @@ int main()
         std::string system = "Si";
 
         std::vector<float> thetas = { 80, 82, 84, 85, 86, 88 };
-        std::vector<uint32_t> repss = { 65536 * 16, 65536 * 16 * 2 };
-        std::vector<float> diffs = { 1.0 };
-        for (float d : diffs) {
+        std::vector<float> diffs = { 0.1, 0.3, 0.5, 1, 3};
+        /*for (float d : diffs) {
             for (float t : thetas) {
-                if ((t < 86 && t >= 80  && d < 0.6) or (t == 88 && d < 0.5)) {
+                std::cout << "Deposition at " << t << " and " << d << " nm diffusion length." << std::endl;
+                try {
+                    obliqueDepositionContinuous(t, L, H, reps, estimate_binsize(t, radii[0]), seed, d, 10, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::PotentialHoppingLUT);
+                }
+                catch (...) {
                     continue;
                 }
-                std::cout << "Deposition at " << t << " and " << d << " nm diffusion length." << std::endl;
-                obliqueDepositionContinuous(t, L, H, reps, estimate_binsize(t, radii[0]), seed, d, 10, &species, &radii, &weights, inputGrid, &params, system);
+                params.clearLayers();
+            }
+        }*/
+
+        /*for (float d : diffs) {
+            for (float t : thetas) {
+                try {
+                    obliqueDepositionContinuous(t, L, H, reps, estimate_binsize(t, radii[0]), seed, d, 5, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::ForcePushingLUT);
+                }
+                catch (...) {
+                    continue;
+                }
+                params.clearLayers();
+            }
+        }*/
+        reps = 2097152;
+        thetas = { 30, 45, 60, 75, 80, 82, 84, 85, 86, 88 };
+        diffs = { 0.3, 0.5, 1, 3 };
+        for (float d : diffs) {
+            for (float t : thetas) {
+                obliqueDepositionContinuous(t, L, H, reps, estimate_binsize(t, radii[0]), seed, d, 11, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::PotentialHoppingLUT, nullptr);
+
                 params.clearLayers();
             }
         }

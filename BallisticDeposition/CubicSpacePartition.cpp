@@ -13,7 +13,7 @@ double local_potential(unsigned n, const double* x, double* grad, void* my_func_
 		r6 = pow(r2, 3);
 		s6 = pow(2 * p[4], 6) / 2;
 		s12 = pow(s6, 2);
-		s6r6 = s6 / r2;
+		s6r6 = s6 / r6;
 		s12r12 = pow(s6r6, 2);
 		val += s12r12 - s6r6;
 		if (grad) {

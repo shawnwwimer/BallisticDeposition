@@ -28,11 +28,11 @@ public:
 	/// <param name="L">x-period</param>
 	/// <param name="W">y-period</param>
 	/// <param name="H">z-extent</param>
-	/// <param name="scale">Some number such that L/scale, W/scale, and H/scale are all integers larger than the dimension. Default: 0.1f. </param>
-	Matrix3DLateralPBC(float L, float W, float H, float scale = 10.f) : L{ L }, W{ W }, H{ H }, scale{ scale }{
-		Ls = L * (double)scale;
-		Ws = W * (double)scale;
-		Hs = H * (double)scale;
+	/// <param name="scale">Some number such that L/scale, W/scale, and H/scale are all integers larger than the dimension. Default: 0.2f. </param>
+	Matrix3DLateralPBC(float L, float W, float H, float scale = 5.f) : L{ L }, W{ W }, H{ H }, scale{ scale }{
+		Ls = L * (double)scale + 0.5;
+		Ws = W * (double)scale + 0.5;
+		Hs = H * (double)scale + 0.5;
 		WLs = Ls * Ws;
 	}
 	
@@ -175,7 +175,7 @@ public:
 					int idxx = idxy + ii;
 
 					// if it's the minimum update
-					if (arr[idxx] < min_val) {
+ 					if (arr[idxx] < min_val) {
 						min_distance2 = k * k + j * j + i * i;
 						min_val = arr[idxx];
 						minimum = { ii, jj, kk };
@@ -597,8 +597,16 @@ public:
 
 	bool save_file(const char* fname) {
 		if (init) {
-			//cnpy::npy_save(fname, arr, { Hs, Ws, Ls });
-			cnpy::npy_save(fname, points);
+			/*float* out = (float*)malloc(sizeof(float) * Ls * Ws * Hs);
+			for (int i = 0; i < Ls; i++) {
+				for (int j = 0; j < Ws; j++) {
+					for (int k = 0; k < Hs; k++) {
+						out[k * Ls * Ws + j * Ls + i] = points[;
+					}
+				}
+			}*/
+			cnpy::npy_save(fname, arr, { Ls, Ws, Hs });
+			//free(out);
 			return true;
 		}
 		return false;

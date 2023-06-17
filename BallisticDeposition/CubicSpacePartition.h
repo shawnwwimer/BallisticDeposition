@@ -14,7 +14,7 @@ private:
 	int bins_on_side, bins_in_set, bins_num;
 	std::vector<std::vector<int>> bins;
 	std::vector<std::vector<float>>* atoms;
-	nlopt::opt opt = nlopt::opt(nlopt::LD_MMA, 3);
+	nlopt::opt opt = nlopt::opt(nlopt::LN_AUGLAG, 3);
 	std::vector<double> minimization_result = { 0, 0, 0 };
 	
 public:
@@ -25,13 +25,19 @@ public:
 		for (int i = 0; i < bins_num; i++) {
 			std::vector<int>* b = new std::vector<int>;
 			bins.push_back(*b);
-			free(b);
+			delete(b);
 		}
 
 		// Set stopping criteria
 		opt.set_xtol_abs(1e-3);
 		opt.set_xtol_rel(1e-3);
 		opt.set_maxeval(400);
+		if (opt.get_algorithm() == nlopt::LN_AUGLAG) {
+			opt.set_local_optimizer(nlopt::opt(nlopt::LN_NELDERMEAD, 3));
+		}
+		else if (opt.get_algorithm() == nlopt::LD_AUGLAG) {
+			opt.set_local_optimizer(nlopt::opt(nlopt::LD_MMA, 3));
+		}
 	}
 
 	void add_to_bins(int idx, std::array<float, 3> position) {

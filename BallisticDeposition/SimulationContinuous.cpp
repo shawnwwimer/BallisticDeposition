@@ -39,7 +39,7 @@ int writeFileToZipCTS(const char* zipname, const char* filename)
 				}
 
 				// Close it inside zip
-				if (zipCloseFileInZip(zf)) {
+				if (zipCloseFileInZip(zf) == ZIP_OK) {
 					error = ZIP_OK;
 				}
 				// Close file
@@ -55,7 +55,7 @@ int writeFileToZipCTS(const char* zipname, const char* filename)
 	return error;
 }
 
-int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method)
+int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method, FilesToSave * save)
 {
 	switch (diffusion_method) {
 	case DiffusionMethod::PotentialHoppingLUT:
@@ -77,7 +77,8 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 
 	auto start = std::chrono::high_resolution_clock::now();
 	std::vector<std::vector<float>> atoms;
-	std::vector<std::vector<float>> diffusion_lengths;
+	std::vector<std::vector<float>> landing_positions;
+	std::vector<std::array<float, 3>> dests;
 
 	SlantedCorridors corridors = SlantedCorridors(L, H, theta, bin_size);
 
@@ -188,6 +189,10 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	std::mt19937 gend(seed + 1);
 	std::uniform_real_distribution<float> dist_d(0, 1);
 
+	for (int n = 0; n < reps; n++) {
+		dests.push_back({ dist(gen), dist(gen), 0});
+	}
+
 	// Print how long it took
 	std::chrono::duration<double, std::milli> timep = std::chrono::high_resolution_clock::now() - start;
 	std::cout << "Set-up took " << timep.count() / 1000 << " s." << std::endl;
@@ -206,7 +211,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		auto startl = std::chrono::high_resolution_clock::now();
 
 		// Generate 
-		dest = { dist(gen), dist(gen), 0 };//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
+		dest = dests[n];//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
 		//dest = { target[n], 1, 0 };
 
 		// Choose species
@@ -246,7 +251,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 			while (distance > 0) {
 				// start from current position
 				current_minimum = collision->position;
-				float remaining_distance = distance > 2 * (*radii)[0] ? 2 * (*radii)[0] : distance;
+				float remaining_distance = distance > 3 * (*radii)[0] ? 3 * (*radii)[0] : distance;
 				if (current_minimum[2] < 0) {
 					current_minimum[2] = (*radii)[0];
 				}
@@ -461,7 +466,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		atoms.push_back(new_atom);
 		corridors.add_to_bins(&collision->position, (*radii)[sp], n);
 		cubes.add_to_bins(n, collision->position);
-		diffusion_lengths.push_back({ landing_position[0] - collision->position[0], landing_position[1] - collision->position[1], landing_position[2] - collision->position[2] });
+		landing_positions.push_back({ landing_position[0], landing_position[1], landing_position[2] });
 
 		// Update potentials
 		if (diffusion_length > 0 && (diffusion_method == DiffusionMethod::PotentialHoppingLUT || diffusion_method == DiffusionMethod::HopAndSettleLUT)) {
@@ -536,7 +541,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	zipClose(zf, NULL);
 	int err;
 
-	// Grid
+	// grid
 	float* outGrid = (float*)malloc(sizeof(float) * reps * 6);
 	if (outGrid != NULL) {
 		for (int j = 0; j < atoms.size(); j++) {
@@ -548,30 +553,54 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		free(outGrid);
 	}
 	err = writeFileToZipCTS((filename + ".simc").c_str(), "grid.npy");
+	if (err == ZIP_ERRNO) {
+		std::cout << "Couldn't add to zip file correctly." << std::endl;
+	}
 	std::remove("grid.npy");
 
 	// priority
-	corridors.save_file("priority.npy");
-	err = writeFileToZipCTS((filename + ".simc").c_str(), "priority.npy");
-	std::remove("priority.npy");
-
-	// diffusion distances
-	float* diffout = (float*)malloc(sizeof(float) * reps * 3);
-	for (int i = 0; i < reps; i ++) {
-		for (int j = 0; j < 3; j++) {
-			if (diffusion_lengths[i][j] < -L/2) {
-				diffusion_lengths[i][j] += L;
-			}
-			else if (diffusion_lengths[i][j] > L/2){
-				diffusion_lengths[i][j] -= L;
-			}
-			diffout[i * 3 + j] = diffusion_lengths[i][j];
+	if (save != nullptr && save->priority) {
+		corridors.save_file("priority.npy");
+		err = writeFileToZipCTS((filename + ".simc").c_str(), "priority.npy");
+		if (err == ZIP_ERRNO) {
+			std::cout << "Couldn't add to zip file correctly." << std::endl;
 		}
+		std::remove("priority.npy");
 	}
-	cnpy::npy_save("diffusion.npy", diffout, { reps, 3 });
-	free(diffout);
-	err = writeFileToZipCTS((filename + ".simc").c_str(), "diffusion.npy");
-	std::remove("diffusion.npy");
+
+	// collision positions
+	if (save != nullptr && save->collisions) {
+		float* colout = (float*)malloc(sizeof(float) * reps * 3);
+		for (int i = 0; i < reps; i++) {
+			for (int j = 0; j < 3; j++) {
+				colout[i * 3 + j] = landing_positions[i][j];
+			}
+		}
+		cnpy::npy_save("collisions.npy", colout, { reps, 3 });
+		free(colout);
+		err = writeFileToZipCTS((filename + ".simc").c_str(), "collisions.npy");
+		if (err == ZIP_ERRNO) {
+			std::cout << "Couldn't add to zip file correctly." << std::endl;
+		}
+		std::remove("collisions.npy");
+	}
+
+	// desinations
+	if (save != nullptr && save->destinations) {
+		float* destout = (float*)malloc(sizeof(float) * reps * 3);
+		for (int i = 0; i < reps; i++) {
+			for (int j = 0; j < 3; j++) {
+				destout[i * 3 + j] = dests[i][j];
+			}
+		}
+		cnpy::npy_save("destinations.npy", destout, { reps, 3 });
+		free(destout);
+		err = writeFileToZipCTS((filename + ".simc").c_str(), "destinations.npy");
+		if (err == ZIP_ERRNO) {
+			std::cout << "Couldn't add to zip file correctly." << std::endl;
+		}
+		std::remove("destinations.npy");
+	}
 
 	// Parameters
 	std::ofstream json_file;
@@ -579,23 +608,37 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	json_file << params->serialization;
 	json_file.close();
 	err = writeFileToZipCTS((filename + ".simc").c_str(), "params.json");
+	if (err == ZIP_ERRNO) {
+		std::cout << "Couldn't add to zip file correctly." << std::endl;
+	}
 	std::remove("params.json");
 	
-	/*if (potentials.save_file("potential.npy")) {
-		err = writeFileToZipCTS((filename + ".simc").c_str(), "potential.npy");
-		std::remove("potential.npy");
-	}*/
+	// volume potential
+	if (save != nullptr && save->volume_potential) {
+		if (potentials.save_file("potential.npy")) {
+			err = writeFileToZipCTS((filename + ".simc").c_str(), "potential.npy");
+			if (err == ZIP_ERRNO) {
+				std::cout << "Couldn't add to zip file correctly." << std::endl;
+			}
+			std::remove("potential.npy");
+		}
+	}
 	
-	/*if (region.save_file("region.npy")) {
-		err = writeFileToZipCTS((filename + ".simc").c_str(), "region.npy");
-		std::remove("region.npy");
-	}*/
+	// atomic potential
+	if (save != nullptr && save->atomic_potential) {
+		if (region.save_file("region.npy")) {
+			err = writeFileToZipCTS((filename + ".simc").c_str(), "region.npy");
+			if (err == ZIP_ERRNO) {
+				std::cout << "Couldn't add to zip file correctly." << std::endl;
+			}
+			std::remove("region.npy");
+		}
+	}
 
 	// Print the timing
 	std::cout << reps << " reps completed in " << time << " seconds; \n" << reps / time << " reps per second." << std::endl;
 	std::cout << "Line finding and traversal were " << timel << " seconds of that time." << std::endl;
 	std::cout << "Diffusion was " << timed << " seconds of that time." << std::endl;
 
-	//free(potentials);
 	return reps;
 }
