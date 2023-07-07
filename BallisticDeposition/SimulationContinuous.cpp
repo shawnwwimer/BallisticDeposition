@@ -55,7 +55,7 @@ int writeFileToZipCTS(const char* zipname, const char* filename)
 	return error;
 }
 
-int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, uint8_t bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method, FilesToSave * save)
+int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, float bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method, FilesToSave * save)
 {
 	switch (diffusion_method) {
 	case DiffusionMethod::PotentialHoppingLUT:
@@ -142,6 +142,14 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 				}
 			}
 		}
+		for (int k = 0; k < (diameter - 1)/2; k++) {
+			float mag = A * pow((zero_pot / (k+1)), 12) - R * pow((zero_pot / (k+1)), 6);
+			for (int i = 0; i < potentials.get_Ls(); i++) {
+				for (int j = 0; j < potentials.get_Ws(); j++) {
+					potentials(i, j, k) = mag;
+				}
+			}
+		}
 	}
 	
 	//float* region = (float* )malloc(sizeof(float) * diameter * diameter * diameter * 4);
@@ -153,14 +161,8 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	std::array<float, 3> current_minimum = { 0, 0, 0 };
 	std::array<int, 3> center = { 0, 0, 0 };
 
-	std::vector<float> target = { };
-	for (int i = 0; i < reps; i++) {
-		target.push_back(L - 0.01);
-		target.push_back(0.01);
-	}
-
 	// Populate from input grid
-	float current_fiber_id = 1;
+	float current_fiber_id = 0;
 	int n = 0;
 	if (inputGrid.size() > 0) {
 		for (auto atom : inputGrid) {
@@ -191,6 +193,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 
 	for (int n = 0; n < reps; n++) {
 		dests.push_back({ dist(gen), dist(gen), 0});
+		//dests.push_back({ 0, 1+(float)n/10, 0 });
 	}
 
 	// Print how long it took
@@ -266,13 +269,27 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 							std::cout << "Found " << neighbors->size() << " neighbors";
 						}
 						for (auto p : *neighbors) {
-							float dist2 = pow(atoms[p][0] - current_minimum[0], 2) + pow(atoms[p][1] - current_minimum[1], 2) + pow(atoms[p][2] - current_minimum[2], 2);
+							float dx = atoms[p][0] - current_minimum[0];
+							float dy = atoms[p][1] - current_minimum[1];
+							if (dx > L / 2) {
+								dx -= L;
+							}
+							else if (dx < -L / 2) {
+								dx += L;
+							}
+							if (dy > L / 2) {
+								dy -= L;
+							}
+							else if (dy < -L / 2) {
+								dy += L;
+							}
+							float dist2 = pow(dx, 2) + pow(dy, 2) + pow(atoms[p][2] - current_minimum[2], 2);
 							float r = sqrt(dist2);
 							float r6 = pow(dist2, 3);
 							float r12 = pow(r6, 2);
 							force_mag = -(2 / r) * (s6 / r6 - 2 * s12 / r12);
-							direction[0] += (current_minimum[0] - atoms[p][0]) / r * force_mag;
-							direction[1] += (current_minimum[1] - atoms[p][1]) / r * force_mag;
+							direction[0] += dx / r * force_mag;
+							direction[1] += dy / r * force_mag;
 							direction[2] += (current_minimum[2] - atoms[p][2]) / r * force_mag;
 						}
 						if (current_minimum[2] < (*radii)[0] && direction[2] < 0) {
@@ -435,7 +452,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 			while (distance > 0) {
 				// start from current position
 				current_minimum = collision->position;
-				float remaining_distance = distance > 2 * (*radii)[0] ? 2 * (*radii)[0] : distance;
+				float remaining_distance = distance > 3 * (*radii)[0] ? 3 * (*radii)[0] : distance;
 				if (current_minimum[2] < 0) {
 					current_minimum[2] = (*radii)[0];
 				}
@@ -464,9 +481,12 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 		// Add the new atom
 		new_atom = { collision->position[0], collision->position[1], collision->position[2], (float)(*species)[sp], (*radii)[sp], fiber };
 		atoms.push_back(new_atom);
-		corridors.add_to_bins(&collision->position, (*radii)[sp], n);
-		cubes.add_to_bins(n, collision->position);
+		corridors.add_to_bins(&collision->position, (*radii)[sp], n + inputGrid.size());
 		landing_positions.push_back({ landing_position[0], landing_position[1], landing_position[2] });
+
+		if (diffusion_length > 0 && (diffusion_method == DiffusionMethod::HopAndSettleLUT || diffusion_method == DiffusionMethod::ForcePushingLUT || diffusion_method == DiffusionMethod::NumericalMinimization)) {
+			cubes.add_to_bins(n + inputGrid.size(), collision->position);
+		}
 
 		// Update potentials
 		if (diffusion_length > 0 && (diffusion_method == DiffusionMethod::PotentialHoppingLUT || diffusion_method == DiffusionMethod::HopAndSettleLUT)) {
@@ -542,7 +562,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	int err;
 
 	// grid
-	float* outGrid = (float*)malloc(sizeof(float) * reps * 6);
+	float* outGrid = (float*)malloc(sizeof(float) * atoms.size() * 6);
 	if (outGrid != NULL) {
 		for (int j = 0; j < atoms.size(); j++) {
 			for (int i = 0; i < 6; i++) {
@@ -569,7 +589,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, ui
 	}
 
 	// collision positions
-	if (save != nullptr && save->collisions) {
+	if (save == nullptr || save->collisions) {
 		float* colout = (float*)malloc(sizeof(float) * reps * 3);
 		for (int i = 0; i < reps; i++) {
 			for (int j = 0; j < 3; j++) {
