@@ -8,18 +8,14 @@
 
 // should be modified to take radius into account
 float estimate_binsize(float flux_angle, float radius) {
-    if (flux_angle < 45) {
-        return 1.f;
-    }
-    else if (flux_angle <= 85.f) {
-        return 2.f;
-    }
-    else if (flux_angle < 89.f) {
-        return 8.f;
-    }
-    else {
-        return 8.f;
-    }
+    // First find the minimum BS
+    float BS = 2 * radius / cos(flux_angle * M_PI / 180);
+
+    // Now get the next-largest power of 2
+    float f = floor(log2(BS) + 1);
+
+    // Return that power of 2
+    return pow(2, f);
 }
 
 int main()
@@ -28,7 +24,7 @@ int main()
     if (cts_simulation) {
         float theta = 85;
         float L = 96;
-        float H = 128+64;
+        float H = 96+128;
 
         uint32_t reps = 1e6;
         uint8_t bin_size = 2;
@@ -41,38 +37,16 @@ int main()
         ContinuousSimulationParametersFull params;
         std::string system = "Si";
 
-        std::vector<float> thetas = { 80, 82, 84, 85, 86, 88 };
-        std::vector<float> diffs = { 0.1, 0.3, 0.5, 1, 3};
-        /*for (float d : diffs) {
-            for (float t : thetas) {
-                std::cout << "Deposition at " << t << " and " << d << " nm diffusion length." << std::endl;
-                try {
-                    obliqueDepositionContinuous(t, L, H, reps, estimate_binsize(t, radii[0]), seed, d, 10, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::PotentialHoppingLUT);
-                }
-                catch (...) {
-                    continue;
-                }
-                params.clearLayers();
-            }
-        }*/
-
-        /*for (float d : diffs) {
-            for (float t : thetas) {
-                try {
-                    obliqueDepositionContinuous(t, L, H, reps, estimate_binsize(t, radii[0]), seed, d, 5, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::ForcePushingLUT);
-                }
-                catch (...) {
-                    continue;
-                }
-                params.clearLayers();
-            }
-        }*/
+        FilesToSave save_params;
+        save_params.priority = false;
+        //save_params.collisions = false;
+        //inputGrid = { {51.87532, 1, 3.860409, 1, 0.147, 1} };
         reps = 2097152;
-        thetas = { 30, 45, 60, 75, 80, 82, 84, 85, 86, 88 };
-        diffs = { 0.3, 0.5, 1, 3 };
+        std::vector<float> thetas = { 30, 45, 60, 75, 80, 82, 84, 85, 86, 88 };
+        std::vector<float> diffs = { 0.1};
         for (float d : diffs) {
             for (float t : thetas) {
-                obliqueDepositionContinuous(t, L, H, reps, estimate_binsize(t, radii[0]), seed, d, 11, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::PotentialHoppingLUT, nullptr);
+                obliqueDepositionContinuous(t, L, H, reps, estimate_binsize(t, radii[0]), seed, d, 5, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::ForcePushingLUT, &save_params);
 
                 params.clearLayers();
             }
@@ -122,72 +96,7 @@ int main()
         std::vector<int> Ds = { 0, 1, 2, 5, 10, 15, 20, 25, 30, 50, 75, 100 };
         float spreads[6] = { 1e-6, 1.f, 2.f, 3.f, 4.f, 5.f };
 
-        /*points = obliqueDeposition(85.0476, 768, 800, reps * 40.0 / 183, 0, 0, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        points = obliqueDeposition(83.0166, 768, 800, reps * 130.0 / 183, 0, 0, seed, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        points = obliqueDeposition(87.2449, 768, 800, reps * 13.0 / 183, 0, 0, seed, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        params.clearLayers();
-        reps *= 2;
-        points = obliqueDeposition(85.0476, 768, 800, reps * 40.0 / 183, 0, 0, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        points = obliqueDeposition(83.0166, 768, 800, reps * 130.0 / 183, 0, 0, seed, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        points = obliqueDeposition(87.2449, 768, 800, reps * 13.0 / 183, 0, 0, seed, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        params.clearLayers();
-        reps *= 2;
-        points = obliqueDeposition(85.0476, 768, 800, reps * 40.0 / 183, 0, 0, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        points = obliqueDeposition(83.0166, 768, 800, reps * 130.0 / 183, 0, 0, seed, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        points = obliqueDeposition(87.2449, 768, 800, reps * 13.0 / 183, 0, 0, seed, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        params.clearLayers();*/
-
-        //points = obliqueDeposition(25, 768, 800, reps, 0, 0, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        //params.clearLayers();
-        //points = obliqueDeposition(89, 768, 800, reps / 2, 0, 3, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, true, 85, Acceleration::NONE);
-        //params.clearLayers();
-        //points = obliqueDeposition(70, 768, 800, reps, 0, 0, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        //params.clearLayers();
-        //points = obliqueDeposition(75, 768, 800, reps, 0, 0, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-        //params.clearLayers();
-
-        /*points = obliqueDeposition(70, 768, 800, reps, 0, 0, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, true, 89, Acceleration::NONE);
-        points = obliqueDeposition(86, 768, 800, reps / 4, 0, 0, seed, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        points = obliqueDeposition(87, 768, 800, reps / 4, 0, 0, seed, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        points = obliqueDeposition(88, 768, 800, reps / 4, 0, 0, seed, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        points = obliqueDeposition(89, 768, 800, reps / 4, 0, 0, seed, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();*/
-
-        //points = obliqueDeposition(88, 768, 800, reps / 2, 0, 0, 10001, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::DEC);
-        //params.clearLayers();
-        //points = obliqueDeposition(88, 768, 800, reps, 0, 0, 10002, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::DEC);
-        //params.clearLayers();
-        //points = obliqueDeposition(88, 768, 800, reps, 0, 0, 10003, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::DEC);
-        //params.clearLayers();
-        //points = obliqueDeposition(88, 768, 800, reps / 4, 0, 1000, 10000, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        //points = obliqueDeposition(88, 768, 800, reps / 2, 0, 0, 10001, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::DEC);
-        //params.clearLayers();
-        //points = obliqueDeposition(88, 768, 800, reps / 4, 0, 1000, 10000, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        //points = obliqueDeposition(88, 768, 800, reps, 0, 0, 10002, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::DEC);
-        //params.clearLayers();
-        //points = obliqueDeposition(88, 768, 800, 1048576, 0, 0, 10000, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::DEC);
-        //points = obliqueDeposition(88, 768, 800, reps, 0, 0, 10003, 10, &sSi, &spread, &Si, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::DEC);
-        //params.clearLayers();
-
-
-
-
-        //for (int d = 0; d < Ds.size(); d++) {
-        //    for (int t = 0; t < thetas.size(); t++) {
-        //        if (thetas[t] < 89 && !(Ds[d] == 1 || Ds[d] == 2 || Ds[d] == 5)) {
-        //            continue;
-        //        }
-        //        for (int s = 0; s < 1; s++) {
-        //            spread[0] = spreads[s];
-        //            spread[1] = spreads[s];
-        //            std::cout << "Simulating theta " << thetas[t] << " degrees and " << Ds[d] << " diffusion steps." << std::endl;
-        //            points = obliqueDeposition(thetas[t], L, H, reps, 0, 0, seed, Ds[d], &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        //            params.clearLayers();
-        //            //points = obliqueDeposition(thetas[t], L, H, reps, 0, 0, seed, Ds[i], &sZrO2, &spread, &ZrO2, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, yZrO2, false, false, Acceleration::NONE);
-        //            //params.clearLayers();
-        //        }
-        //    }
-        //}
+        
         for (int n = 0; n < 5; n++) {
             for (int d = 0; d < Ds.size(); d++) {
                 for (int t = 0; t < thetas.size(); t++) {
@@ -204,240 +113,8 @@ int main()
             }
         }
 
-        //
-        //for (int n = 0; n < 5; n++) {
-        //    for (int d = 0; d < Ds.size(); d++) {
-        //        for (int t = 0; t < thetas.size(); t++) {
-        //            for (int s = 0; s < 1; s++) {
-        //                spread[0] = spreads[s];
-        //                spread[1] = spreads[s];
-        //                std::cout << "Simulating theta " << thetas[t] << " degrees and " << Ds[d] << " diffusion steps." << std::endl;
-        //                points = obliqueDeposition(thetas[t], L, H, reps, 0, 0, seed, Ds[d], &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        //                params.clearLayers();
-        //                //points = obliqueDeposition(thetas[t], L, H, reps, 0, 0, seed, Ds[i], &sZrO2, &spread, &ZrO2, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, yZrO2, false, false, Acceleration::NONE);
-        //                //params.clearLayers();
-        //            }
-        //        }
-        //    }
-        //}
-
-
-
-        /*points = obliqueDeposition(theta, L, H, reps, 0, 2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 0, -2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 90, 2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 90, -2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 180, 2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 180, -2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 270, 2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 270, -2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 45, 2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 45, -2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 135, 2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 135, -2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 225, 2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 225, -2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 315, 2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();
-        points = obliqueDeposition(theta, L, H, reps, 315, -2, seed, 10, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        params.clearLayers();*/
-        /*points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 10, &sSi, &spread, &SiAg, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps/8, 0, 0, seed, 30, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 10, &sSi, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps/8, 0, 0, seed, 30, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);
-        params.clearLayers();*/
-        /*points = obliqueDeposition(theta, L, H, reps, 0, 0.85, seed, 10, &sSi, &spread, &SiAg, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps/8, 0.85*360, 0.15, seed, 30, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps, 0, 0.85, seed, 10, &sSi, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps/8, 0.85 * 360, 0.15, seed, 30, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);
-        params.clearLayers();*/
-        /*points = obliqueDeposition(theta, L, H, reps, 90, 0, seed, 10, &sSi, &spread, &SiAg, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps/8, 90, 0, seed, 30, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps, 90, 0, seed, 10, &sSi, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps/8, 90, 0, seed, 30, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);
-        params.clearLayers();*/
-        /*points = obliqueDeposition(theta, L, H, reps, 0, -0.85, seed, 10, &sSi, &spread, &SiAg, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps/8, -0.85 * 360, -0.15, seed, 30, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps, 0, -0.85, seed, 10, &sSi, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);
-        points = obliqueDeposition(theta, L, H, reps/8, -0.85 * 360, -0.15, seed, 30, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, Acceleration::NONE);*/
-        //points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 5, &species, &spread, &ZrO2, points, *outGrid, outGrid, 0, 0, stepper_resolution, &params, system, false, false, Acceleration::NONE);
-        //for (int p = 1; p < 2; p++) {
-        //    std::cout << "Starting simulation " << p << "." << std::endl;
-        //    uint32_t points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 5, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::ACC);
-        //    params.clearLayers();
-        //    points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 5, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::DEC);
-        //    params.clearLayers();
-        //} // Si ACC DEC D5
-        //
-        //for (int p = 1; p < 2; p++) {
-        //    std::cout << "Starting simulation " << p << "." << std::endl;
-        //    uint32_t points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 10, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::ACC);
-        //    params.clearLayers();
-        //    points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 10, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::DEC);
-        //    params.clearLayers();
-        //} // Si ACC DEC D10
-
-        //for (int p = 1; p < 2; p++) {
-        //    std::cout << "Starting simulation " << p << "." << std::endl;
-        //    uint32_t points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 5, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::ACC);
-        //    points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 5, &species, &spread, &weights, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::DEC);
-        //    params.clearLayers();
-        //} // Si BICONE D5
-
-        //for (int p = 1; p < 2; p++) {
-        //    std::cout << "Starting simulation " << p << "." << std::endl;
-        //    uint32_t points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 10, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::ACC);
-        //    points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 10, &species, &spread, &weights, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::DEC);
-        //    params.clearLayers();
-        //} // Si BICONE D10
-
-        //for (int p = 1; p < 2; p++) {
-        //    std::cout << "Starting simulation " << p << "." << std::endl;
-        //    uint32_t points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 5, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::DEC);
-        //    points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 5, &species, &spread, &weights, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::ACC);
-        //    params.clearLayers();
-        //} // Si BICONE D5
-
-        //for (int p = 1; p < 2; p++) {
-        //    std::cout << "Starting simulation " << p << "." << std::endl;
-        //    uint32_t points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 10, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::DEC);
-        //    points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, 10, &species, &spread, &weights, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false, Acceleration::ACC);
-        //    params.clearLayers();
-        //} // Si BICONE D10
-        /*
-        for (int p = 1; p < 17; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, phi, 1, seed, 5, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-            params.clearLayers();
-        } // Si sweep D5 helix
-
-        for (int p = 1; p < 17; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, phi, 1, seed, 10, &species, &spread, &weights, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-            params.clearLayers();
-        } // Si sweep D10 helix
-
-
-
-        std::vector<int8_t> speciesAg = { 2 };
-
-        system = "Si_Ag";
-
-        for (int p = 1; p < 1; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 5, &species, &spread, &weights_SiAg, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false);
-            points = obliqueDeposition(theta, L, H, reps / 8, 0, 0, seed, 30, &speciesAg, &spread, &weights_SiAg, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false);
-
-            params.clearLayers();
-        } // Si_Ag no sweep D5
-
-        for (int p = 1; p < 1; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 10, &species, &spread, &weights_SiAg, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false);
-            points = obliqueDeposition(theta, L, H, reps / 8, 0, 0, seed, 30, &speciesAg, &spread, &weights_SiAg, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false);
-
-            params.clearLayers();
-        } // Si_Ag no sweep D10
-
-        for (int p = 2; p < 3; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 5, &species, &spread, &weights_SiAg, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-            points = obliqueDeposition(theta, L, H, reps/8, 0, 0, seed, 30, &speciesAg, &spread, &weights_SiAg, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false);
-
-            params.clearLayers();
-        } // Si_Ag sweep Si D5
-
-        for (int p = 2; p < 3; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 5, &species, &spread, &weights_SiAg, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-            points = obliqueDeposition(theta, L, H, reps / 8, 0, 0, seed, 30, &speciesAg, &spread, &weights_SiAg, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-
-            params.clearLayers();
-        } // Si_Ag sweep both D5
-
-        for (int p = 2; p < 3; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 10, &species, &spread, &weights_SiAg, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-            points = obliqueDeposition(theta, L, H, reps / 8, 0, 0, seed, 30, &speciesAg, &spread, &weights_SiAg, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false);
-
-            params.clearLayers();
-        } // Si_Ag sweep Si D10
-
-        for (int p = 2; p < 3; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 10, &species, &spread, &weights_SiAg, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-            points = obliqueDeposition(theta, L, H, reps / 8, 0, 0, seed, 30, &speciesAg, &spread, &weights_SiAg, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-
-            params.clearLayers();
-        } // Si_Ag sweep both D10
-
-        for (int p = 1; p < 17; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, 0, .85, seed, 5, &species, &spread, &weights_SiAg, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-            points = obliqueDeposition(theta, L, H, reps / 8, 0.85*360, .15, seed, 30, &speciesAg, &spread, &weights_SiAg, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false);
-
-            params.clearLayers();
-        } // Si_Ag sweep Si D5 helix
-
-        for (int p = 1; p < 17; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, 0, .85, seed, 5, &species, &spread, &weights_SiAg, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-            points = obliqueDeposition(theta, L, H, reps / 8, 0.85 * 360, .15, seed, 30, &speciesAg, &spread, &weights_SiAg, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-
-            params.clearLayers();
-        } // Si_Ag sweep both D5 helix
-
-        for (int p = 1; p < 17; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, 0, .85, seed, 10, &species, &spread, &weights_SiAg, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-            points = obliqueDeposition(theta, L, H, reps / 8, 0.85 * 360, .15, seed, 30, &speciesAg, &spread, &weights_SiAg, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, false, false);
-
-            params.clearLayers();
-        } // Si_Ag sweep Si D10 helix
-
-        for (int p = 1; p < 17; p++) {
-            std::cout << "Starting simulation " << p << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, 0, .85, seed, 10, &species, &spread, &weights_SiAg, inputGrid, inputGridPoints, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-            points = obliqueDeposition(theta, L, H, reps / 8, 0.85 * 360, .15, seed, 30, &speciesAg, &spread, &weights_SiAg, *outGrid, points, outGrid, p * 4, 45, stepper_resolution, &params, system, true, false);
-
-            params.clearLayers();
-        } // Si_Ag sweep both D10 helix
-
-
-        for (int n = 0; n < 16; n++) {
-            std::cout << "Starting simulation " << n + 1 << "." << std::endl;
-            uint32_t points = obliqueDeposition(theta, L, H, reps, 0, turns*.85, seed, diffusion_steps + n, &species, &spread, &weights_SiAg, inputGrid, inputGridPoints, outGrid, stepper_resolution, &params, system, true, false);
-            points = obliqueDeposition(theta, L, H, reps / 8, 360*.85, turns*.15, seed, 30, &speciesAg, &spread, &weights_SiAg, *outGrid, points, outGrid, stepper_resolution, &params, system, true, false);
-
-            params.clearLayers();
-        }
-        */
+        
     }
 
     return 0;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
