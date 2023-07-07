@@ -56,7 +56,7 @@ private:
 
 	double pi = M_PI;
 
-	uint8_t bin_size;
+	float bin_size;
 	int32_t bins_on_side;
 	int32_t bins_num;
 	std::vector<particle_priority*> particles;
@@ -68,6 +68,7 @@ private:
 	std::array<float, 8> factor = { 0 };
 	uint8_t bins_found_num = 0;
 	collision_description collision = collision_description(0, 0, 0, -1);
+	//float rs, x_on_particle_z, radii2, projx, projy, projz, dot, d2, r, x, z;
 	//float dropped_point[3] = { 0.f };
 
 	// Private methods
@@ -101,7 +102,7 @@ private:
 
 
 public:
-	SlantedCorridors(float L, float H, double theta, uint8_t bin_size) : L{ L }, H{ H }, theta{ theta }, bin_size{ bin_size }
+	SlantedCorridors(float L, float H, double theta, float bin_size) : L{ L }, H{ H }, theta{ theta }, bin_size{ bin_size }
 	{
 		Lfloat = (float)L;
 		tan_theta = tan(theta * pi / 180.0);

@@ -222,18 +222,15 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3>* pos
     //}
 
     // Need to know relative position
-    float adjusted_x = (*position)[2] * tan_theta + (*position)[0];
-    //int factor = (int)(adjusted_x / L);
-    adjusted_x = modulof(adjusted_x, Lfloat);
-    
-    
+    //float adjusted_x = (*position)[2] * tan_theta + (*position)[0];
+    //adjusted_x = modulof(adjusted_x, Lfloat);
 
     // If adjusted_x too near L we need to set 'straddle'
     int straddle = 0;
-    if (adjusted_x < bin_size) {
+    if ((*position)[0] < bin_size) {
         straddle = -1;
     }
-    else if (adjusted_x >= L - bin_size) {
+    else if ((*position)[0] >= L - bin_size) {
         straddle = 1;
     }
 
@@ -278,54 +275,62 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3>* pos
         // get top particle from bin and increment the iterator
         particle_priority p = *iterators[bin];
         iterators[bin]++;
+        int idx = p.idx;
 
-        int idx = p.idx;//atoms.size() - p.idx - 1;
-        //std::vector<float> particle = atoms[idx];
-
+        // Distance to determine collision
         float rs = radius + (*atoms)[idx][4];
 
+        // Get neareest y-distance between particles
+        float projy = (*position)[1] - (*atoms)[idx][1];
+        if (projy > Lfloat / 2) {
+            projy -= L;
+        }
+        else if (projy < -Lfloat / 2) {
+            projy += L;
+        }
+        
+        // If the distance is too large we can skip this particle
+        if (projy > rs || -projy < -rs) {
+            continue;
+        }
 
         float x_on_particle_z = ((*position)[2] - (*atoms)[idx][2]) * tan_theta + (*position)[0];
-        int factor = (int)(x_on_particle_z / L);
-        x_on_particle_z = fmod(x_on_particle_z, Lfloat);
-
-        float offset[2] = { 0 };
-
-        if ((*atoms)[idx][0] - x_on_particle_z < -Lfloat / 2.0) {
-            offset[0] = -Lfloat;
-        }
-        else if ((*atoms)[idx][0] - x_on_particle_z > Lfloat / 2.0) {
-            offset[0] = Lfloat;
-        }
-        if ((*atoms)[idx][1] - (*position)[1] < -Lfloat / 2.0) {
-            offset[1] = -Lfloat;
-        }
-        else if ((*atoms)[idx][1] - (*position)[1] > Lfloat / 2.0) {
-            offset[1] = Lfloat;
-        }
-        //float d = sqrt(pow(sin_theta * ((*position)[2] - (*atoms)[idx][2]) - cos_theta * ((*position)[0] - (*atoms)[idx][0] + offset[0]), 2) + pow((*position)[1] - (*atoms)[idx][1] + offset[1], 2));
+        x_on_particle_z = modulof(x_on_particle_z, Lfloat);
 
         // Find distance squared value
         float radii2 = rs * rs;
-        float rotx = ((*position)[0] - factor * Lfloat - (*atoms)[idx][0] + offset[0]) * cos_theta + ((*position)[2] - (*atoms)[idx][2]) * sin_theta;
-        float d2 = rotx * rotx + ((*position)[1] - (*atoms)[idx][1] + offset[1]) * ((*position)[1] - (*atoms)[idx][1] + offset[1]);
+
+        // Get nearest position of incoming particle respecting PBC
+        float projx = x_on_particle_z - (*atoms)[idx][0];
+        if (projx > Lfloat / 2) {
+            projx -= L;
+        }
+        else if (projx < -Lfloat / 2) {
+            projx += L;
+        }
+        projx += (*atoms)[idx][0];
+        projy += (*atoms)[idx][1];
+        
+        // Now get the projection of the stationary particle onto the line of travel
+        // projx doesn't change because the line has constant y-coordinate
+        float dot = ((*atoms)[idx][0] - projx) * sin_theta;// +((*atoms)[idx][2] - projz) * -cos_theta;
+        projx += dot * sin_theta;
+        float projz = (*atoms)[idx][2] + dot * -cos_theta;
+
+        // Find distance squared back to line
+        float d2 = pow(projx - (*atoms)[idx][0], 2) + pow(projy - (*atoms)[idx][1], 2) + pow(projz - (*atoms)[idx][2], 2);
 
         if (d2 < rs*rs) {
-            // Calculate position
-            float rotz = sqrt(radii2 - d2);
-            float z = rotx * sin_theta + rotz * cos_theta + (*atoms)[idx][2];
-            float x = rotx * cos_theta - rotz * sin_theta + (*atoms)[idx][0];
-            //float z = (sqrt(pow(rs, 2) - pow((*position)[1] - (*atoms)[idx][1] + offset[1], 2)) + (*atoms)[idx][2] * sin_theta + cos_theta * ((*position)[0] + (*position)[2] * tan_theta)) / (sin_theta + cos_theta * tan_theta);
-            //float x = (*position)[0] + ((*position)[2] - z) * tan_theta;
+            // Calculate distance displaced along line and then position
+            float r = sqrt(radii2 - d2);
+            float x = projx - r * sin_theta;
+            float z = projz + r * cos_theta;
 
             if (z < radius) {
-                continue; // Would only collide below the substrate
+                continue; // Would first collide below the substrate
             }
             collision.position = { modulof(x, L), (*position)[1], z };
-            collision.idx = p.idx;//atoms.size() - p.idx - 1;
-            //if ((x - (*atoms)[idx][0]) * (x - (*atoms)[idx][0]) + ((*position)[1] - (*atoms)[idx][1] + offset[1]) * ((*position)[1] - (*atoms)[idx][1] + offset[1]) + (z - (*atoms)[idx][2]) * (z - (*atoms)[idx][2])-.001 > radii2) {
-            //    std::cout << "Too far!" << std::endl;
-            //}
+            collision.idx = p.idx;
             return &collision;
         }
     }
