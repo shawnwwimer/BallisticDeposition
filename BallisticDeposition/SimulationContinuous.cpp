@@ -172,7 +172,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 			std::array<float, 3> position = { atom[0], atom[1], atom[2] };
 			atoms.push_back(atom);
 			corridors.add_to_bins(&position, atom[4], n);
-			cubes.add_to_bins(n, position);
+			cubes.add_to_bins(n, &position);
 			n++;
 		}
 	}
@@ -264,7 +264,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 				if (diffusion_method == DiffusionMethod::HopAndSettleLUT) {
 					for (float settle = 1 / length_scale / 2; settle > 0; settle -= step_size) {
 						direction = { 0, 0, 0 };
-						std::vector<int>* neighbors = cubes.find_nearest_bin(current_minimum);
+						std::vector<int>* neighbors = cubes.find_nearest_bin(&current_minimum);
 						if (VERBOSE) {
 							std::cout << "Found " << neighbors->size() << " neighbors";
 						}
@@ -367,7 +367,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 			while (distance > 0) {
 				current_minimum = collision->position;
 				direction = { 0, 0, 0 };
-				std::vector<int>* neighbors = cubes.find_nearest_bin(current_minimum);
+				std::vector<int>* neighbors = cubes.find_nearest_bin(&current_minimum);
 				if (VERBOSE) {
 					std::cout << "Found " << neighbors->size() << " neighbors";
 				}
@@ -456,7 +456,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 				if (current_minimum[2] < 0) {
 					current_minimum[2] = (*radii)[0];
 				}
-				std::vector<double>* minimum = cubes.find_local_minimum(current_minimum, distance);
+				std::vector<double>* minimum = cubes.find_local_minimum(&current_minimum, distance);
 				collision->position = { modulof((float)(*minimum)[0], L), modulof((float)(*minimum)[1], L), (float)(*minimum)[2] };
 				distance -= remaining_distance;
 			}
@@ -485,7 +485,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 		landing_positions.push_back({ landing_position[0], landing_position[1], landing_position[2] });
 
 		if (diffusion_length > 0 && (diffusion_method == DiffusionMethod::HopAndSettleLUT || diffusion_method == DiffusionMethod::ForcePushingLUT || diffusion_method == DiffusionMethod::NumericalMinimization)) {
-			cubes.add_to_bins(n + inputGrid.size(), collision->position);
+			cubes.add_to_bins(n + inputGrid.size(), &collision->position);
 		}
 
 		// Update potentials

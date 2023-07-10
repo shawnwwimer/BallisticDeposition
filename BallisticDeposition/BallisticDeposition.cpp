@@ -42,11 +42,21 @@ int main()
         //save_params.collisions = false;
         //inputGrid = { {51.87532, 1, 3.860409, 1, 0.147, 1} };
         reps = 2097152;
+        int treps = reps;
         std::vector<float> thetas = { 30, 45, 60, 75, 80, 82, 84, 85, 86, 88 };
-        std::vector<float> diffs = { 0.1};
+        std::vector<float> diffs = { 0.15, 0.2, 0.25, 0.3, 0.5, 1, 3 };
         for (float d : diffs) {
             for (float t : thetas) {
-                obliqueDepositionContinuous(t, L, H, reps, estimate_binsize(t, radii[0]), seed, d, 5, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::ForcePushingLUT, &save_params);
+                if ((d < 0.2 && t != 45) || (d < 0.3 && (t == 60 || t == 30))) {
+                    continue;
+                }
+                if ((d < 0.2 && t > 86)) {
+                    treps = reps * 3 / 4;
+                }
+                else {
+                    treps = reps;
+                }
+                obliqueDepositionContinuous(t, L, H+32, treps, estimate_binsize(t, radii[0]), seed, d, 5, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::NumericalMinimization, &save_params);
 
                 params.clearLayers();
             }

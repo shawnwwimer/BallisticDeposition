@@ -15,7 +15,7 @@ private:
 	std::vector<std::vector<int>> bins;
 	std::vector<std::vector<std::vector<float>*>> neighbor_lists;
 	std::vector<std::vector<float>>* atoms;
-	nlopt::opt opt = nlopt::opt(nlopt::LD_AUGLAG, 3);
+	nlopt::opt opt = nlopt::opt(nlopt::LN_COBYLA, 3);
 	std::vector<double> minimization_result = { 0, 0, 0 };
 	
 public:
@@ -52,10 +52,10 @@ public:
 		}
 	}
 
-	void add_to_bins(int idx, std::array<float, 3> position) {
-		float nx = position[0] / cube_size;
-		float ny = position[1] / cube_size;
-		float nz = position[2] / cube_size;
+	void add_to_bins(int idx, std::array<float, 3> * position) {
+		float nx = (*position)[0] / cube_size;
+		float ny = (*position)[1] / cube_size;
+		float nz = (*position)[2] / cube_size;
 		int xidx = floor(nx);
 		int yidx = floor(ny);
 		int zidx = floor(nz);
@@ -106,10 +106,10 @@ public:
 		//}
 	}
 
-	int find_nearest_bin_idx(std::array<float, 3> position) {
-		float nx = round(position[0] / cube_size * 2)/2;
-		float ny = round(position[1] / cube_size * 2)/2;
-		float nz = round(position[2] / cube_size * 2)/2;
+	int find_nearest_bin_idx(std::array<float, 3> * position) {
+		float nx = round((*position)[0] / cube_size * 2)/2;
+		float ny = round((*position)[1] / cube_size * 2)/2;
+		float nz = round((*position)[2] / cube_size * 2)/2;
 		
 		// if nx is odd we're offset in x
 		// if ny is odd we're offset in y
@@ -172,9 +172,9 @@ public:
 		return zidx * bins_on_side * bins_on_side + yidx * bins_on_side + xidx + bins_in_set * factor;
 	}
 
-	std::vector<int>* find_nearest_bin(std::array<float, 3> position) {
+	std::vector<int>* find_nearest_bin(std::array<float, 3>* position) {
 		return &bins[find_nearest_bin_idx(position)];
 	}
 
-	std::vector<double>* find_local_minimum(std::array<float, 3> position, float distance);
+	std::vector<double>* find_local_minimum(std::array<float, 3>* position, float distance);
 };
