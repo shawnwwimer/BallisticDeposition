@@ -49,9 +49,7 @@ public:
 	}
 
 	~Matrix3DLateralPBC() {
-		if (init) {
-			free(arr);
-		}
+		free(arr);
 	}
 
 	/// <summary>
@@ -63,7 +61,7 @@ public:
 	/// <returns>nullptr if z out of range, std::array&lt;float, 3&gt;* if not.</returns>
 	inline float& operator()(int x, int y, int z) {
 		if (z > Hs || z < 0) {
-			return arr[0,0,0];
+			return arr[0, 0, 0];
 		}
 
 		if (x > Ls || x < 0) {

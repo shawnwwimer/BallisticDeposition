@@ -632,6 +632,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 		std::cout << "Couldn't add to zip file correctly." << std::endl;
 	}
 	std::remove("params.json");
+	params->clearLayers();
 	
 	// volume potential
 	if (save != nullptr && save->volume_potential) {
