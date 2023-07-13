@@ -269,8 +269,8 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 							std::cout << "Found " << neighbors->size() << " neighbors";
 						}
 						for (auto p : *neighbors) {
-							float dx = atoms[p][0] - current_minimum[0];
-							float dy = atoms[p][1] - current_minimum[1];
+							float dx = current_minimum[0] - atoms[p][0];
+							float dy = current_minimum[1] - atoms[p][1];
 							if (dx > L / 2) {
 								dx -= L;
 							}

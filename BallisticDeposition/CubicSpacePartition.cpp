@@ -19,8 +19,8 @@ double local_potential(unsigned n, const double* x, double* grad, void* my_func_
 	for (int i = 0; i < positions->size(); i++) {
 		
 		auto p = (*positions)[i];
-		dx = (*p)[0] - x[0];
-		dy = (*p)[1] - x[1];
+		dx = x[0] - (*p)[0];
+		dy = x[1] - (*p)[1];
 		if (dx > 96 / 2) {
 			dx -= 96;
 		}
