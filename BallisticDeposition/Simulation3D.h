@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <random>
 #include <chrono>
+#include <array>
 
 #include "SimulationParameters.h"
 #include "Surface3D.h"
