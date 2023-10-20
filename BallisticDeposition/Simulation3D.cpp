@@ -442,6 +442,13 @@ uint16_t sparseToDense(int16_t* sparse, uint32_t num_points, int8_t* grid, uint1
 	return maxh;
 }
 
+std::piecewise_linear_distribution<double> triangular_distribution(double min, double peak, double max)
+{
+	std::array<double, 3> i = { min, peak, max };
+	std::array<double, 3> w = { 0, 1, 0 };
+	return std::piecewise_linear_distribution<double>{i.begin(), i.end(), w.begin()};
+}
+
 int writeFileToZip(const char* zipname, const char* filename)
 {
 	int error = ZIP_ERRNO;
@@ -561,9 +568,11 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	std::uniform_int_distribution<> sist(0, species->size());
 
 	std::mt19937 gensphi(seed);
-	std::normal_distribution<> dist_phi(0, (*spread)[0]*pi/180 / 2.57583); // 1% of particles are > abs of value passed
+	//std::normal_distribution<> dist_phi(0, (*spread)[0]*pi/180 / 2.57583); // 1% of particles are > abs of value passed
+	std::uniform_real_distribution<> dist_phi(-(*spread)[0] * pi / 90, (*spread)[0] * pi / 90);
 	std::mt19937 genstheta(seed + 1);
-	std::normal_distribution<> dist_theta(0, (*spread)[1]*pi/180 / 2.57583); // 1% of particles are > abs of value passed
+	//std::normal_distribution<> dist_theta(0, (*spread)[1]*pi/180 / 2.57583); // 1% of particles are > abs of value passed
+	auto dist_theta = triangular_distribution(-(*spread)[1] * pi / 90, 0, (*spread)[1] * pi / 90);
 
 	// Create path
 	int32_t src[3] = { (int16_t)(round(maxh / tan(theta_rad - pi / 2.0) * cos(phi_rad))), (int16_t)(round(maxh / tan(theta_rad - pi / 2.0) * sin(phi_rad))), maxh };

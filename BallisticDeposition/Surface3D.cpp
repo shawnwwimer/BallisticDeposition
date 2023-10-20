@@ -293,7 +293,7 @@ uint16_t* Surface3D::getAdjacentVacancy(uint16_t* center, int8_t sp)
 	}
 
 	if (n == 0) {
-		std::cout << "n " << n << std::endl;
+		std::cout << "Particle landed at (" << center[0] << ", " << center[1] << ", " << center[2] << ") with " << n << " adjacent vacancies." << std::endl;
 	}
 
 	
