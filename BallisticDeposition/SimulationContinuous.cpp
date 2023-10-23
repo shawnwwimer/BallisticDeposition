@@ -55,7 +55,7 @@ int writeFileToZipCTS(const char* zipname, const char* filename)
 	return error;
 }
 
-int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, float bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method, FilesToSave * save)
+int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, float bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, std::vector<std::vector<float>>* outputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method, FilesToSave * save)
 {
 	switch (diffusion_method) {
 	case DiffusionMethod::PotentialHoppingLUT:
@@ -254,7 +254,8 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 			while (distance > 0) {
 				// start from current position
 				current_minimum = collision->position;
-				float remaining_distance = distance > 3 * (*radii)[0] ? 3 * (*radii)[0] : distance;
+				//float remaining_distance = distance > 3 * (*radii)[0] ? 3 * (*radii)[0] : distance;
+				float remaining_distance = distance > 5 * (*radii)[0] ? 5 * (*radii)[0] : distance;
 				if (current_minimum[2] < 0) {
 					current_minimum[2] = (*radii)[0];
 				}
@@ -515,6 +516,8 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 		}
 	}
 
+	std::cout << atoms.size() << " atoms total in data." << std::endl;
+
 	// Finish up timing
 	auto end = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double, std::milli> dural = end - start;
@@ -554,7 +557,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 	std::string diff_str = std::to_string(diffusion_length);
 	diff_str.erase(diff_str.find_last_not_of('0') + 1, std::string::npos);
 	diff_str.erase(diff_str.find_last_not_of('.') + 1, std::string::npos);
-	std::string filename = "structures/cts/STF_" + system + "_L" + len_str + "_Th" + theta_str + "_D" + diff_str + "_N" + std::to_string(params->deposited) + "_" + std::to_string(epoch_time);
+	std::string filename = "structures/cts/STF_" + system + "_L" + len_str + "_Th" + theta_str + "_D" + diff_str + "_N" + std::to_string(int(atoms.size())) + "_" + std::to_string(epoch_time);
 
 	// Save objects
 	zipFile zf = zipOpen64((filename + ".simc").c_str(), 0);
@@ -569,7 +572,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 				outGrid[j * 6 + i] = atoms[j][i];
 			}
 		}
-		cnpy::npy_save("grid.npy", outGrid, { reps, 6 });
+		cnpy::npy_save("grid.npy", outGrid, { atoms.size(), 6 });
 		free(outGrid);
 	}
 	err = writeFileToZipCTS((filename + ".simc").c_str(), "grid.npy");
@@ -577,6 +580,10 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 		std::cout << "Couldn't add to zip file correctly." << std::endl;
 	}
 	std::remove("grid.npy");
+
+	for (auto a : atoms) {
+		outputGrid->push_back(a);
+	}
 
 	// priority
 	if (save != nullptr && save->priority) {

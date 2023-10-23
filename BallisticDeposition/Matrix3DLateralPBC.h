@@ -603,7 +603,7 @@ public:
 					}
 				}
 			}*/
-			cnpy::npy_save(fname, arr, { Ls, Ws, Hs });
+			cnpy::npy_save(fname, arr, { Hs, Ws, Ls });
 			//free(out);
 			return true;
 		}
