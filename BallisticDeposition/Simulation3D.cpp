@@ -554,7 +554,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	int swap_direction = 0;
 
 	// Create surface
-	Surface3D * surface = new Surface3D(L, H, L, grid, species, weights, seed);
+	Surface3D * surface = new Surface3D(L, H, L, grid, species, weights, 0, seed);
 
 	// Create random number generator
 	if (seed == 0) {
