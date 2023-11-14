@@ -312,7 +312,7 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3>* pos
         projy += (*atoms)[idx][1];
         
         // Now get the projection of the stationary particle onto the line of travel
-        // projx doesn't change because the line has constant y-coordinate
+        // projy doesn't change because the line has constant y-coordinate
         float dot = ((*atoms)[idx][0] - projx) * sin_theta;// +((*atoms)[idx][2] - projz) * -cos_theta;
         projx += dot * sin_theta;
         float projz = (*atoms)[idx][2] + dot * -cos_theta;
