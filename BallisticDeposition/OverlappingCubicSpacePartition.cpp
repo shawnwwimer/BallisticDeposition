@@ -1,4 +1,4 @@
-#include "CubicSpacePartition.h"
+#include "OverlappingCubicSpacePartition.h"
 
 double local_potential(unsigned n, const double* x, double* grad, void* my_func_data) {
 	std::vector<std::vector<float>*>* positions = (std::vector<std::vector<float>*>*) my_func_data;
@@ -49,7 +49,7 @@ double local_potential(unsigned n, const double* x, double* grad, void* my_func_
 	return val;
 }
 
-std::vector<double>* CubicSpacePartition::find_local_minimum(std::array<float, 3>* position, float distance) {
+std::vector<double>* OverlappingCubicSpacePartition::find_local_minimum(std::array<float, 3>* position, float distance) {
 	// Get the bin
 	int binidx = find_nearest_bin_idx(position);
 	std::vector<int>* bin = &bins[binidx];

@@ -54,7 +54,7 @@
     <ClCompile Include="math_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CubicSpacePartition.cpp">
+    <ClCompile Include="OverlappingCubicSpacePartition.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -98,7 +98,7 @@
     <ClInclude Include="SlantedCorridors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CubicSpacePartition.h">
+    <ClInclude Include="OverlappingCubicSpacePartition.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Matrix3DLateralPBC.h">

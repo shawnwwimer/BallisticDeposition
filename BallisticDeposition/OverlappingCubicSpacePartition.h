@@ -5,7 +5,7 @@
 #include <nlopt.hpp>
 
 
-class CubicSpacePartition
+class OverlappingCubicSpacePartition
 {
 private:
 	float L;
@@ -19,7 +19,7 @@ private:
 	std::vector<double> minimization_result = { 0, 0, 0 };
 	
 public:
-	CubicSpacePartition(float L, float H, std::vector<std::vector<float>>* atoms, float cube_size = 2.0f) : L{ L }, H{ H }, cube_size{ cube_size }, atoms{ atoms }{
+	OverlappingCubicSpacePartition(float L, float H, std::vector<std::vector<float>>* atoms, float cube_size = 2.0f) : L{ L }, H{ H }, cube_size{ cube_size }, atoms{ atoms }{
 		bins_on_side = L / cube_size;
 		bins_in_set = bins_on_side * bins_on_side * H / cube_size;
 		bins_num = bins_in_set * 8;

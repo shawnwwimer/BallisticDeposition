@@ -32,6 +32,7 @@ int main()
         float diffusion_length = 0;
         std::vector<int8_t> species = { 1 };
         std::vector<float> radii = { 0.147 }; // Si: 0.111; Ag: 0.144; Ti: 0.147
+        std::vector<float> spread = { 0, 0 };
         std::vector<std::vector<float>> weights = { {{1, .1}, {.1, 1}} };
         std::vector<std::vector<float>> inputGrid;
         ContinuousSimulationParametersFull params;
@@ -56,7 +57,7 @@ int main()
                 else {
                     treps = reps;
                 }
-                obliqueDepositionContinuous(t, L, H+32, treps, estimate_binsize(t, radii[0]), seed, d, 5, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::NumericalMinimization, &save_params);
+                obliqueDepositionContinuous(t, L, H+32, treps, estimate_binsize(t, radii[0]), seed, d, 5, &species, &radii, &spread, &weights, inputGrid, &params, system, DiffusionMethod::NumericalMinimization, &save_params);
 
                 params.clearLayers();
             }

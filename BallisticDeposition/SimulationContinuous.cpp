@@ -55,7 +55,7 @@ int writeFileToZipCTS(const char* zipname, const char* filename)
 	return error;
 }
 
-int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, float bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method, FilesToSave * save)
+int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, float bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<float>* spread, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method, FilesToSave * save)
 {
 	switch (diffusion_method) {
 	case DiffusionMethod::PotentialHoppingLUT:
@@ -82,7 +82,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 
 	SlantedCorridors corridors = SlantedCorridors(L, H, theta, bin_size);
 
-	CubicSpacePartition cubes = CubicSpacePartition(L, H, &atoms, 2.0);
+	OverlappingCubicSpacePartition cubes = OverlappingCubicSpacePartition(L, H, &atoms, 2.0);
 	float s = 2*(*radii)[0] / pow(2, 1.0 / 6.0);
 	float s6 = pow(s, 6);
 	float s12 = pow(s6, 2);
