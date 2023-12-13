@@ -280,7 +280,7 @@ collision_description* SlantedCorridors::drop_particle(std::array<float, 3>* pos
         // Distance to determine collision
         float rs = radius + (*atoms)[idx][4];
 
-        // Get neareest y-distance between particles
+        // Get nearest y-distance between particles
         float projy = (*position)[1] - (*atoms)[idx][1];
         if (projy > Lfloat / 2) {
             projy -= L;

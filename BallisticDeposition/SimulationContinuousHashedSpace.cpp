@@ -1,7 +1,7 @@
-#include "SimulationContinuous.h"
+#include "SimulationContinuousHashedSpace.h"
 #define VERBOSE (false)
 
-int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, float bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<float>* spread, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method, FilesToSave * save)
+int obliqueDepositionContinuousHashed(float theta, float L, float H, uint32_t reps, float bin_size, uint32_t seed, float diffusion_length, float length_scale, std::vector<int8_t>* species, std::vector<float>* radii, std::vector<float>* spread, std::vector<std::vector<float>>* weights, std::vector<std::vector<float>> inputGrid, ContinuousSimulationParametersFull* params, std::string& system, DiffusionMethod diffusion_method, FilesToSave* save)
 {
 	switch (diffusion_method) {
 	case DiffusionMethod::PotentialHoppingLUT:
@@ -26,10 +26,11 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 	std::vector<std::vector<float>> landing_positions;
 	std::vector<std::array<float, 3>> dests;
 
-	SlantedCorridors corridors = SlantedCorridors(L, H, theta, bin_size);
+	float cell_size = 0.5f;
+	SpaceHashMap hash_map = SpaceHashMap(L, H, &atoms, cell_size);
 
 	OverlappingCubicSpacePartition cubes = OverlappingCubicSpacePartition(L, H, &atoms, 2.0);
-	float s = 2*(*radii)[0] / pow(2, 1.0 / 6.0);
+	float s = 2 * (*radii)[0] / pow(2, 1.0 / 6.0);
 	float s6 = pow(s, 6);
 	float s12 = pow(s6, 2);
 
@@ -38,7 +39,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 	float Vm = length_scale * (2 * (*radii)[0]);
 	float zero_pot = Vm / pow(2, 1.0 / 6.0);
 
-	Matrix3DLateralPBC region = Matrix3DLateralPBC(2.f + 1/length_scale, 2.f + 1 / length_scale, 2.f + 1 / length_scale, length_scale);
+	Matrix3DLateralPBC region = Matrix3DLateralPBC(2.f + 1 / length_scale, 2.f + 1 / length_scale, 2.f + 1 / length_scale, length_scale);
 	Matrix3DLateralPBC potentials = Matrix3DLateralPBC(L, L, H, length_scale);
 	int diameter = region.get_Hs();
 	if (diffusion_length > 0 && (diffusion_method == DiffusionMethod::PotentialHoppingLUT || diffusion_method == DiffusionMethod::HopAndSettleLUT)) {
@@ -88,8 +89,8 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 				}
 			}
 		}
-		for (int k = 0; k < (diameter - 1)/2; k++) {
-			float mag = A * pow((zero_pot / (k+1)), 12) - R * pow((zero_pot / (k+1)), 6);
+		for (int k = 0; k < (diameter - 1) / 2; k++) {
+			float mag = A * pow((zero_pot / (k + 1)), 12) - R * pow((zero_pot / (k + 1)), 6);
 			for (int i = 0; i < potentials.get_Ls(); i++) {
 				for (int j = 0; j < potentials.get_Ws(); j++) {
 					potentials(i, j, k) = mag;
@@ -97,9 +98,9 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 			}
 		}
 	}
-	
+
 	//float* region = (float* )malloc(sizeof(float) * diameter * diameter * diameter * 4);
-	
+
 	int steps = round(length_scale * diffusion_length);
 	int rads = round(length_scale * 2 * (*radii)[0]);
 	float scaled_position[3] = { 0 };
@@ -117,7 +118,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 			}
 			std::array<float, 3> position = { atom[0], atom[1], atom[2] };
 			atoms.push_back(atom);
-			corridors.add_to_bins(&position, atom[4], n);
+			hash_map.add_to_bin(&position, n);
 			cubes.add_to_bins(n, &position);
 			n++;
 		}
@@ -138,7 +139,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 	std::uniform_real_distribution<float> dist_d(0, 1);
 
 	for (int n = 0; n < reps; n++) {
-		dests.push_back({ dist(gen), dist(gen), 0});
+		dests.push_back({ dist(gen), dist(gen), 0 });
 		//dests.push_back({ 0, 1+(float)n/10, 0 });
 	}
 
@@ -150,25 +151,171 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 	start = std::chrono::high_resolution_clock::now();
 	int update = (reps > 128) ? 128 : 1; // number of printed updates
 	std::array<float, 3> dest;
+	std::array<float, 3> src;
 	std::array<float, 3> landing_position;
 	std::vector<float> new_atom;
+	std::vector<int> bins;
 	float fiber = 0;
 	double timel = 0;
 	double timed = 0;
+	float x1, y1, z1;
+	collision_description* collision = new collision_description(-1, -1, -1, -1);
+	int collision_idx = -1;
+	float earliest_collision = 1e6;
 	for (int n = 0; n < reps; n++) {
-		
+
 		auto startl = std::chrono::high_resolution_clock::now();
 
 		// Generate 
-		dest = dests[n];//{ ((float)n)  / reps + L / 2 * (n % 2), (float)n / reps + L / 2 * (n % 2), 0 };//
+		dest = dests[n];
+		//dest = { 32, 0.25f+0.05f*n, 0 };//
 		//dest = { target[n], 1, 0 };
 
 		// Choose species
 		int sp = 0;
 
 		// Drop particle
-		collision_description* collision = corridors.drop_particle(&dest, (*radii)[sp], &atoms);
-		
+		float slant = tan(theta * M_PI / 180.f - M_PI / 2.f);
+		src[0] = ((H - 1) / slant + dest[0]);
+		src[1] = dest[1];
+		src[2] = H - 1;
+
+		float dx = abs(dest[0] - src[0]), dy = abs(dest[1] - src[1]), dz = abs(dest[2] - src[2]);
+		float x = fmod(src[0], L), y = src[1], z = src[2];
+		float realz = z;
+		if (x < 0) {
+			x += L;
+		}
+
+		// get bin by modified Bresenham
+		float p = 2 * dz * cell_size - dx;
+		while (z > -cell_size) {
+			// increase x by cell_size and restrict within L
+			x = x + cell_size;
+			realz += slant * cell_size;
+			if (x > L) {
+				x -= L;
+			}
+
+			// adjust p and z if necessary
+			if (p >= 0) {
+				z -= cell_size;
+				if (z == -cell_size) {
+					break;
+				}
+				p -= 2 * dx * cell_size;
+			}
+
+			// Get bins on same level
+			int idx = hash_map.return_bin_idx(x, y, realz);
+			float ydiff = fmodf(y, cell_size);
+			if (ydiff < (*radii)[0] * 2) {
+				if (y < cell_size) {
+					bins.push_back(hash_map.return_bin_idx(x, L - 0.01f, realz));
+				}
+				else {
+					bins.push_back(hash_map.return_bin_idx(x, y - cell_size, realz));
+				}
+			}
+			if (ydiff > cell_size - (*radii)[0] * 2) {
+				if (y > L - cell_size) {
+					bins.push_back(hash_map.return_bin_idx(x, 0.01f, realz));
+				}
+				else {
+					bins.push_back(hash_map.return_bin_idx(x, y + cell_size, realz));
+				}
+			}
+			bins.push_back(idx);
+			float zdiff = fmodf(realz, cell_size);//(-p / 1 / dx) * cell_size;
+			if (cell_size-zdiff < (*radii)[0] * 2 && realz+cell_size < H) {
+				// near the upper cell
+				bins.push_back(hash_map.return_bin_idx(x, y, realz + cell_size));
+				if (ydiff < (*radii)[0] * 2) {
+					if (y < cell_size) {
+						bins.push_back(hash_map.return_bin_idx(x, L-0.01f, realz + cell_size));
+					}
+					else {
+						bins.push_back(hash_map.return_bin_idx(x, y-cell_size, realz + cell_size));
+					}
+				}
+				if (ydiff > cell_size - (*radii)[0] * 2) {
+					if (y > L - cell_size) {
+						bins.push_back(hash_map.return_bin_idx(x, 0.01f, realz + cell_size));
+					}
+					else {
+						bins.push_back(hash_map.return_bin_idx(x, y + cell_size, realz + cell_size));
+					}
+				}
+			}
+			if (zdiff < (*radii)[0] * 2 && realz > cell_size) {
+				bins.push_back(idx - hash_map.bins_in_layer);
+				if (ydiff < (*radii)[0] * 2) {
+					if (y < cell_size) {
+						bins.push_back(hash_map.return_bin_idx(x, L - 0.01f, realz - cell_size));
+					}
+					else {
+						bins.push_back(hash_map.return_bin_idx(x, y - cell_size, realz - cell_size));
+					}
+				}
+				if (ydiff > cell_size - (*radii)[0] * 2) {
+					if (y > L - cell_size) {
+						bins.push_back(hash_map.return_bin_idx(x, 0.01f, realz - cell_size));
+					}
+					else {
+						bins.push_back(hash_map.return_bin_idx(x, y + cell_size, realz - cell_size));
+					}
+				}
+			}
+			// increment error appropriately
+			p += 2 * dz * cell_size;
+
+			// now determine potential collisions
+			// iterate over bins
+			for (int i : bins) {
+				// iterate over all atoms in the bins
+				for (int j : hash_map.bins[i]) {
+					// sum of radii
+					float rs = (*radii)[0] + atoms[j][4];
+
+					// quadratic equation
+					float a = -(1 * 1 + 0 * 0 + slant * slant);
+					float b = -2 * (1 * (x - atoms[j][0]) + 0 * (y - atoms[j][1]) + slant * (realz - atoms[j][2]));
+					float c = -(pow(x - atoms[j][0], 2) + pow(y - atoms[j][1], 2) + pow(realz - atoms[j][2], 2) - pow(rs, 2));
+					float d = b * b - 4 * a * c;
+
+					if (d >= 0) {
+						d = pow(d, 0.5);
+						// get variable for parameterized position
+						float t1 = (-b - d) / (2 * a);
+						float t2 = (-b + d) / (2 * a);
+						float t = t1 < t2 ? t1 : t2;
+
+						// add collision
+						collision_idx = j;
+						if (t < earliest_collision) {
+							earliest_collision = t;
+							collision->position = { modulof(x + 1 * t, L), y + 0 * t, realz + slant * t };
+							collision->idx = j;
+						}
+					}
+				}
+			}
+			bins.clear();
+
+			if (earliest_collision < 1e-6) {
+				break;
+			}
+		}
+
+		// check that collision wouldn't occur under the surface
+		if (collision_idx == -1 || collision->position[2] < (*radii)[0]) {
+			collision->position = { modulof(dest[0] + (*radii)[0] / slant, L), dest[1], (*radii)[0] };
+			collision->idx = -1;
+		}
+		collision_idx = -1;
+		earliest_collision = 1e6;
+		//collision_description* collision = corridors.drop_particle(&dest, (*radii)[sp], &atoms);
+
 		std::chrono::duration<double, std::milli> dural = std::chrono::high_resolution_clock::now() - startl;
 		timel += dural.count() / 1000;
 
@@ -194,7 +341,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 		float force_mag = 0;
 		float distance = diffusion_length;
 		float step_size = 0.01;
-		
+
 		// this branch is for diffusion that uses a LUT for the potential of a test particle
 		if (diffusion_method == DiffusionMethod::PotentialHoppingLUT || diffusion_method == DiffusionMethod::HopAndSettleLUT) {
 			while (distance > 0) {
@@ -292,7 +439,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 						}
 					}
 				}
-				
+
 				// quit early if we're not moving
 				if (current_minimum[0] == collision->position[0] && current_minimum[1] == collision->position[1] && current_minimum[2] == collision->position[2]) {
 					break;
@@ -427,7 +574,8 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 		// Add the new atom
 		new_atom = { collision->position[0], collision->position[1], collision->position[2], (float)(*species)[sp], (*radii)[sp], fiber };
 		atoms.push_back(new_atom);
-		corridors.add_to_bins(&collision->position, (*radii)[sp], n + inputGrid.size());
+		//corridors.add_to_bins(&collision->position, (*radii)[sp], n + inputGrid.size());
+		hash_map.add_to_bin(&collision->position, n + inputGrid.size());
 		landing_positions.push_back({ landing_position[0], landing_position[1], landing_position[2] });
 
 		if (diffusion_length > 0 && (diffusion_method == DiffusionMethod::HopAndSettleLUT || diffusion_method == DiffusionMethod::ForcePushingLUT || diffusion_method == DiffusionMethod::NumericalMinimization)) {
@@ -470,7 +618,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 	uint32_t epoch_time = epoch.time_since_epoch().count() * std::chrono::system_clock::period::num / std::chrono::system_clock::period::den;
 
 	// Update object for parameters
-	ContinuousSimulationParameters * layer_params = new ContinuousSimulationParameters();
+	ContinuousSimulationParameters* layer_params = new ContinuousSimulationParameters();
 	layer_params->length = L;
 	layer_params->width = L;
 	layer_params->height = H;
@@ -525,14 +673,14 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 	std::remove("grid.npy");
 
 	// priority
-	if (save != nullptr && save->priority) {
-		corridors.save_file("priority.npy");
-		err = writeFileToZipCTS((filename + ".simc").c_str(), "priority.npy");
-		if (err == ZIP_ERRNO) {
-			std::cout << "Couldn't add to zip file correctly." << std::endl;
-		}
-		std::remove("priority.npy");
-	}
+	//if (save != nullptr && save->priority) {
+	//	corridors.save_file("priority.npy");
+	//	err = writeFileToZipCTS((filename + ".simc").c_str(), "priority.npy");
+	//	if (err == ZIP_ERRNO) {
+	//		std::cout << "Couldn't add to zip file correctly." << std::endl;
+	//	}
+	//	std::remove("priority.npy");
+	//}
 
 	// collision positions
 	if (save == nullptr || save->collisions) {
@@ -579,7 +727,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 	}
 	std::remove("params.json");
 	params->clearLayers();
-	
+
 	// volume potential
 	if (save != nullptr && save->volume_potential) {
 		if (potentials.save_file("potential.npy")) {
@@ -590,7 +738,7 @@ int obliqueDepositionContinuous(float theta, float L, float H, uint32_t reps, fl
 			std::remove("potential.npy");
 		}
 	}
-	
+
 	// atomic potential
 	if (save != nullptr && save->atomic_potential) {
 		if (region.save_file("region.npy")) {

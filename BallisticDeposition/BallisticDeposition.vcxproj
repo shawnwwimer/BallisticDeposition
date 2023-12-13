@@ -150,13 +150,16 @@
     <ClCompile Include="..\lib\minizip\unzip.c" />
     <ClCompile Include="..\lib\minizip\zip.c" />
     <ClCompile Include="BallisticDeposition.cpp" />
+    <ClCompile Include="FileWriting.cpp" />
     <ClCompile Include="OverlappingCubicSpacePartition.cpp" />
     <ClCompile Include="math_utils.cpp" />
     <ClCompile Include="Matrix3DLateralPBC.cpp" />
     <ClCompile Include="Simulation3D.cpp" />
     <ClCompile Include="SimulationContinuous.cpp" />
+    <ClCompile Include="SimulationContinuousHashedSpace.cpp" />
     <ClCompile Include="SimulationParameters.cpp" />
     <ClCompile Include="SlantedCorridors.cpp" />
+    <ClCompile Include="SpaceHashMap.cpp" />
     <ClCompile Include="Surface3D.cpp" />
     <ClCompile Include="VectorFieldLateralPBC.cpp" />
   </ItemGroup>
@@ -170,13 +173,16 @@
     <ClInclude Include="..\lib\NLopt\nlopt.hpp" />
     <ClInclude Include="..\lib\zlib\zconf.h" />
     <ClInclude Include="..\lib\zlib\zlib.h" />
+    <ClInclude Include="FileWriting.h" />
     <ClInclude Include="OverlappingCubicSpacePartition.h" />
     <ClInclude Include="math_utils.h" />
     <ClInclude Include="Matrix3DLateralPBC.h" />
     <ClInclude Include="Simulation3D.h" />
     <ClInclude Include="SimulationContinuous.h" />
+    <ClInclude Include="SimulationContinuousHashedSpace.h" />
     <ClInclude Include="SimulationParameters.h" />
     <ClInclude Include="SlantedCorridors.h" />
+    <ClInclude Include="SpaceHashMap.h" />
     <ClInclude Include="Surface3D.h" />
     <ClInclude Include="VectorFieldLateralPBC.h" />
   </ItemGroup>

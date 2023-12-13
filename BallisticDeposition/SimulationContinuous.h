@@ -14,6 +14,7 @@
 #include "SlantedCorridors.h"
 #include "OverlappingCubicSpacePartition.h"
 #include "Matrix3DLateralPBC.h"
+#include "FileWriting.h"
 
 
 float distance3D(uint16_t* p1, uint16_t* p2);

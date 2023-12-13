@@ -5,6 +5,7 @@
 #include <vector>
 #include "Simulation3D.h"
 #include "SimulationContinuous.h"
+#include "SimulationContinuousHashedSpace.h"
 
 // should be modified to take radius into account
 float estimate_binsize(float flux_angle, float radius) {
@@ -23,10 +24,10 @@ int main()
     bool cts_simulation = true;
     if (cts_simulation) {
         float theta = 85;
-        float L = 96;
-        float H = 96+128;
+        float L = 64;
+        float H = 32;
 
-        uint32_t reps = 1e6;
+        uint32_t reps = 128*128*8;
         uint8_t bin_size = 2;
         uint32_t seed = 0;//1277363101;
         float diffusion_length = 0;
@@ -42,22 +43,12 @@ int main()
         save_params.priority = false;
         //save_params.collisions = false;
         //inputGrid = { {51.87532, 1, 3.860409, 1, 0.147, 1} };
-        reps = 2097152;
         int treps = reps;
-        std::vector<float> thetas = { 30, 45, 60, 75, 80, 82, 84, 85, 86, 88 };
-        std::vector<float> diffs = { 0.15, 0.2, 0.25, 0.3, 0.5, 1, 3 };
+        std::vector<float> thetas = { 85 };
+        std::vector<float> diffs = { 0.2 };
         for (float d : diffs) {
             for (float t : thetas) {
-                if ((d < 0.2 && t != 45) || (d < 0.3 && (t == 60 || t == 30))) {
-                    continue;
-                }
-                if ((d < 0.2 && t > 86)) {
-                    treps = reps * 3 / 4;
-                }
-                else {
-                    treps = reps;
-                }
-                obliqueDepositionContinuous(t, L, H+32, treps, estimate_binsize(t, radii[0]), seed, d, 5, &species, &radii, &spread, &weights, inputGrid, &params, system, DiffusionMethod::NumericalMinimization, &save_params);
+                obliqueDepositionContinuousHashed(t, L, H, treps, estimate_binsize(t, radii[0]), seed, d, 11, &species, &radii, &spread, &weights, inputGrid, &params, system, DiffusionMethod::HopAndSettleLUT, &save_params);
 
                 params.clearLayers();
             }
