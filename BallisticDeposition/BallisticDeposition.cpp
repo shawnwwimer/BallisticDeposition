@@ -27,13 +27,13 @@ int main()
         float L = 64;
         float H = 32;
 
-        uint32_t reps = 128*128*8;
+        uint32_t reps = 128*128*8*2;
         uint8_t bin_size = 2;
         uint32_t seed = 0;//1277363101;
         float diffusion_length = 0;
         std::vector<int8_t> species = { 1 };
-        std::vector<float> radii = { 0.147 }; // Si: 0.111; Ag: 0.144; Ti: 0.147
-        std::vector<float> spread = { 0, 0 };
+        std::vector<float> radii = { 0.111 }; // Si: 0.111; Ag: 0.144; Ti: 0.147
+        std::vector<float> spread = { 5, 5 };
         std::vector<std::vector<float>> weights = { {{1, .1}, {.1, 1}} };
         std::vector<std::vector<float>> inputGrid;
         ContinuousSimulationParametersFull params;
@@ -96,7 +96,7 @@ int main()
         uint32_t points = 0;
         std::vector<float> thetas = { 80, 82, 84, 85, 86, 88, 89 };
         std::vector<int> Ds = { 0, 1, 2, 5, 10, 15, 20, 25, 30, 50, 75, 100 };
-        float spreads[6] = { 1e-6, 1.f, 2.f, 3.f, 4.f, 5.f };
+        float spreads[6] = { 1.f, 2.f, 3.f, 4.f, 5.f };
 
         
         for (int n = 0; n < 5; n++) {

@@ -442,12 +442,7 @@ uint16_t sparseToDense(int16_t* sparse, uint32_t num_points, int8_t* grid, uint1
 	return maxh;
 }
 
-std::piecewise_linear_distribution<double> triangular_distribution(double min, double peak, double max)
-{
-	std::array<double, 3> i = { min, peak, max };
-	std::array<double, 3> w = { 0, 1, 0 };
-	return std::piecewise_linear_distribution<double>{i.begin(), i.end(), w.begin()};
-}
+
 
 int writeFileToZip(const char* zipname, const char* filename)
 {

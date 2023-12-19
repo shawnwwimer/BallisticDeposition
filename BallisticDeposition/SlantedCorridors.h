@@ -4,12 +4,12 @@
 #include <set>
 #include <vector>
 #include <iterator>
-#include <iostream>
-#define _USE_MATH_DEFINES
-#include <cmath>
-#include "cnpy.h"
 
+
+#include "cnpy.h"
 #include "math_utils.h"
+#include <iostream>
+
 
 struct particle_priority
 {
@@ -54,7 +54,7 @@ private:
 	double max_sub;
 	double max_z0;
 
-	double pi = M_PI;
+	//double pi = M_PI;
 
 	float bin_size;
 	int32_t bins_on_side;
@@ -105,11 +105,11 @@ public:
 	SlantedCorridors(float L, float H, double theta, float bin_size) : L{ L }, H{ H }, theta{ theta }, bin_size{ bin_size }
 	{
 		Lfloat = (float)L;
-		tan_theta = tan(theta * pi / 180.0);
-		sin_theta = sin(theta * pi / 180.0);
-		cos_theta = cos(theta * pi / 180.0);
-		tan_90theta = tan((90 - theta) * pi / 180.0);
-		cos_theta45 = cos((theta - 45) * pi / 180.0);
+		tan_theta = tan(theta * M_PI / 180.0);
+		sin_theta = sin(theta * M_PI / 180.0);
+		cos_theta = cos(theta * M_PI / 180.0);
+		tan_90theta = tan((90 - theta) * M_PI / 180.0);
+		cos_theta45 = cos((theta - 45) * M_PI / 180.0);
 		max_sub = L * sin_theta;
 		max_z0 = L * tan_90theta;
 

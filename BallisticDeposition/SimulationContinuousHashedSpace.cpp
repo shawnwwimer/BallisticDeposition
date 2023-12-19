@@ -138,6 +138,12 @@ int obliqueDepositionContinuousHashed(float theta, float L, float H, uint32_t re
 	std::mt19937 gend(seed + 1);
 	std::uniform_real_distribution<float> dist_d(0, 1);
 
+	std::mt19937 gensphi(seed);
+	std::uniform_real_distribution<> dist_phi(-(*spread)[0] * M_PI / 90, (*spread)[0] * M_PI / 90);
+
+	std::mt19937 genstheta(seed + 1);
+	auto dist_theta = triangular_distribution(-(*spread)[1] * M_PI / 90, 0, (*spread)[1] * M_PI / 90);
+
 	for (int n = 0; n < reps; n++) {
 		dests.push_back({ dist(gen), dist(gen), 0 });
 		//dests.push_back({ 0, 1+(float)n/10, 0 });
@@ -175,16 +181,26 @@ int obliqueDepositionContinuousHashed(float theta, float L, float H, uint32_t re
 		int sp = 0;
 
 		// Drop particle
-		float slant = tan(theta * M_PI / 180.f - M_PI / 2.f);
-		src[0] = ((H - 1) / slant + dest[0]);
-		src[1] = dest[1];
+		float inst_theta = theta + dist_theta(genstheta);
+		if (inst_theta > 90) {
+			continue;
+		}
+		float inst_phi = dist_phi(gensphi);
+		float slant = tan(inst_theta * M_PI / 180.f - M_PI / 2.f);
+		src[0] = (H - 1) / slant * cos(inst_phi) + dest[0];
+		src[1] = (H - 1) / slant * sin(inst_phi) + dest[1];
 		src[2] = H - 1;
 
 		float dx = abs(dest[0] - src[0]), dy = abs(dest[1] - src[1]), dz = abs(dest[2] - src[2]);
-		float x = fmod(src[0], L), y = src[1], z = src[2];
+		float dydx = (dest[1] - src[1]) / (dest[0] - src[0]);
+		float dzdx = (dest[2] - src[2]) / (dest[0] - src[0]);
+		float x = fmod(src[0], L), y = fmod(src[1], L), z = src[2];
 		float realz = z;
 		if (x < 0) {
 			x += L;
+		}
+		if (y < 0) {
+			y += L;
 		}
 
 		// get bin by modified Bresenham
@@ -192,9 +208,16 @@ int obliqueDepositionContinuousHashed(float theta, float L, float H, uint32_t re
 		while (z > -cell_size) {
 			// increase x by cell_size and restrict within L
 			x = x + cell_size;
-			realz += slant * cell_size;
+			y = y + dydx * cell_size;
+			realz += dzdx * cell_size;
 			if (x > L) {
 				x -= L;
+			}
+			if (y > L) {
+				y -= L;
+			}
+			else if (y < 0) {
+				y += L;
 			}
 
 			// adjust p and z if necessary
@@ -272,15 +295,25 @@ int obliqueDepositionContinuousHashed(float theta, float L, float H, uint32_t re
 			// now determine potential collisions
 			// iterate over bins
 			for (int i : bins) {
+				if (i < 0) {
+					continue;
+				}
 				// iterate over all atoms in the bins
 				for (int j : hash_map.bins[i]) {
 					// sum of radii
 					float rs = (*radii)[0] + atoms[j][4];
+					float ydiff = y - atoms[j][1];
+					if (ydiff > L / 2) {
+						ydiff -= L / 2;
+					}
+					else if (ydiff < -L / 2) {
+						ydiff += L / 2;
+					}
 
 					// quadratic equation
-					float a = -(1 * 1 + 0 * 0 + slant * slant);
-					float b = -2 * (1 * (x - atoms[j][0]) + 0 * (y - atoms[j][1]) + slant * (realz - atoms[j][2]));
-					float c = -(pow(x - atoms[j][0], 2) + pow(y - atoms[j][1], 2) + pow(realz - atoms[j][2], 2) - pow(rs, 2));
+					float a = -(1 * 1 + dydx * dydx + dzdx * dzdx);
+					float b = -2 * (1 * (x - atoms[j][0]) + dydx * ydiff + dzdx * (realz - atoms[j][2]));
+					float c = -(pow(x - atoms[j][0], 2) + pow(ydiff, 2) + pow(realz - atoms[j][2], 2) - pow(rs, 2));
 					float d = b * b - 4 * a * c;
 
 					if (d >= 0) {
@@ -294,7 +327,7 @@ int obliqueDepositionContinuousHashed(float theta, float L, float H, uint32_t re
 						collision_idx = j;
 						if (t < earliest_collision) {
 							earliest_collision = t;
-							collision->position = { modulof(x + 1 * t, L), y + 0 * t, realz + slant * t };
+							collision->position = { modulof(x + 1 * t, L), modulof(y + dydx * t, L), realz + dzdx * t };
 							collision->idx = j;
 						}
 					}
@@ -309,7 +342,7 @@ int obliqueDepositionContinuousHashed(float theta, float L, float H, uint32_t re
 
 		// check that collision wouldn't occur under the surface
 		if (collision_idx == -1 || collision->position[2] < (*radii)[0]) {
-			collision->position = { modulof(dest[0] + (*radii)[0] / slant, L), dest[1], (*radii)[0] };
+			collision->position = { modulof(dest[0] + (*radii)[0] / dzdx, L), modulof(dest[1] + (*radii)[0] * dydx / dzdx, L), (*radii)[0] };
 			collision->idx = -1;
 		}
 		collision_idx = -1;

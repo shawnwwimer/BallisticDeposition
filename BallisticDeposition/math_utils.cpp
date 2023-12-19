@@ -18,3 +18,10 @@ void wrap_index(uint32_t idx, uint16_t* idcs, uint16_t L, uint16_t H) {
 	idcs[1] = (idx / L) % L;
 	idcs[2] = (idx / L / L) % L;
 }
+
+std::piecewise_linear_distribution<double> triangular_distribution(double min, double peak, double max)
+{
+	std::array<double, 3> i = { min, peak, max };
+	std::array<double, 3> w = { 0, 1, 0 };
+	return std::piecewise_linear_distribution<double>{i.begin(), i.end(), w.begin()};
+}

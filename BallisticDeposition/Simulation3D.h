@@ -11,6 +11,7 @@
 
 #include "SimulationParameters.h"
 #include "Surface3D.h"
+#include "math_utils.h"
 
 enum Acceleration
 {
