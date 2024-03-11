@@ -20,7 +20,7 @@ float estimate_binsize(float flux_angle, float radius) {
 
 int main()
 {
-    bool cts_simulation = true;
+    bool cts_simulation = false;
     if (cts_simulation) {
         float theta = 85;
         float L = 96;
@@ -64,17 +64,17 @@ int main()
     }
     else {
         float theta = 85;
-        uint16_t L = 768;
+        uint16_t L = 512;
         uint16_t H = 800;
         uint32_t reps = 8192 * 32 * 8 * 4 * 2;
         float phi = 0;
         float turns = 2;
-        uint32_t seed = 0;
+        uint32_t seed = 1550479086;
         uint16_t diffusion_steps = 5;
         std::vector<int8_t> sSi = { 1 };
         std::vector<int8_t> sAg = { 2 };
         std::vector<int8_t> sZrO2 = { 3, 4, 4 };
-        std::vector<float> spread = { 1e-6, 1e-6 };
+        std::vector<float> spread = { 4, 2 };
         std::vector<float> spread1 = { 2, 2 };
         std::vector<float> spread2 = { 4, 4 };
         std::vector<std::vector<float>> Si = { { {1, 0}, { 0, 1 }} };
@@ -106,24 +106,10 @@ int main()
         std::vector<int> Ds = { 0, 1, 2, 5, 10, 15, 20, 25, 30, 50, 75, 100 };
         float spreads[6] = { 1e-6, 1.f, 2.f, 3.f, 4.f, 5.f };
 
-        
-        for (int n = 0; n < 5; n++) {
-            for (int d = 0; d < Ds.size(); d++) {
-                for (int t = 0; t < thetas.size(); t++) {
-                    for (int s = 0; s < 1; s++) {
-                        spread[0] = spreads[s];
-                        spread[1] = spreads[s];
-                        std::cout << "Simulating theta " << thetas[t] << " degrees and " << Ds[d] << " diffusion steps." << std::endl;
-                        points = obliqueDeposition(thetas[t], L, H, reps, 0, 1, seed, Ds[d], &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
-                        params.clearLayers();
-                        //points = obliqueDeposition(thetas[t], L, H, reps, 0, , seed, Ds[i], &sZrO2, &spread, &ZrO2, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, yZrO2, false, false, Acceleration::NONE);
-                        //params.clearLayers();
-                    }
-                }
-            }
-        }
-
-        
+        points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 5, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
+        params.clearLayers();
+        //points = obliqueDeposition(thetas[t], L, H, reps, 0, , seed, Ds[i], &sZrO2, &spread, &ZrO2, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, yZrO2, false, false, Acceleration::NONE);
+        //params.clearLayers();
     }
 
     return 0;

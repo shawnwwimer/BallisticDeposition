@@ -119,4 +119,7 @@
       <Filter>Header Files</Filter>
     </Library>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\readme.md" />
+  </ItemGroup>
 </Project>
