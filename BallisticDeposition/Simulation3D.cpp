@@ -564,10 +564,12 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 
 	std::mt19937 gensphi(seed);
 	//std::normal_distribution<> dist_phi(0, (*spread)[0]*pi/180 / 2.57583); // 1% of particles are > abs of value passed
-	std::uniform_real_distribution<> dist_phi(-(*spread)[0] * pi / 90, (*spread)[0] * pi / 90);
+	//std::uniform_real_distribution<> dist_phi(-(*spread)[0] * pi / 90, (*spread)[0] * pi / 90);
+	std::normal_distribution<> dist_phi(0, .84702943 * pi / 180.0);
 	std::mt19937 genstheta(seed + 1);
 	//std::normal_distribution<> dist_theta(0, (*spread)[1]*pi/180 / 2.57583); // 1% of particles are > abs of value passed
-	auto dist_theta = triangular_distribution(-(*spread)[1] * pi / 90, 0, (*spread)[1] * pi / 90);
+	//auto dist_theta = triangular_distribution(-(*spread)[1] * pi / 90, 0, (*spread)[1] * pi / 90);
+	std::normal_distribution<> dist_theta(-0.1835*pi/180, 0.92911623*pi/180.0);
 
 	// Create path
 	int32_t src[3] = { (int16_t)(round(maxh / tan(theta_rad - pi / 2.0) * cos(phi_rad))), (int16_t)(round(maxh / tan(theta_rad - pi / 2.0) * sin(phi_rad))), maxh };
@@ -622,9 +624,15 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 		// Get random deviation if given distribution
 		if ((*spread)[0] > 0.000001) {
 			sphi = dist_phi(gensphi);
+			while (fabs(sphi) > (*spread)[0]*pi/180.0) {
+				sphi = dist_phi(gensphi);
+			}
 		}
 		if ((*spread)[1] > 0.000001) {
 			stheta = dist_theta(genstheta);
+			while (fabs(stheta) > (*spread)[1]*pi/180.0) {
+				stheta = dist_phi(genstheta);
+			}
 		}
 
 		// Skip invalid thetas
