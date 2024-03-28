@@ -29,6 +29,8 @@ public:
 
 	// Simulation parameters
 	uint32_t seed;
+	uint8_t acceleration;
+	uint8_t collision_method;
 
 	// Timing
 	double time_taken;
@@ -40,7 +42,7 @@ public:
 class SimulationParametersFull
 {
 	// Individual parameters
-	SimulationParametersIndividual * parameters[10];
+	SimulationParametersIndividual * parameters[32];
 	uint8_t number_of_layers = 0;
 	
 public:

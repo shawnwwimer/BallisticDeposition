@@ -499,7 +499,7 @@ int writeFileToZip(const char* zipname, const char* filename)
 	return error;
 }
 
-int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float phi, float turns, uint32_t seed, uint16_t diffusion_steps, std::vector<int8_t>* species, std::vector<float>* spread, std::vector<std::vector<float>>* weights, int16_t* inputGrid, uint32_t inputGridPoints, int16_t** outGrid, int phi_num, float phi_deg, uint32_t stepper_resolution, SimulationParametersFull* params, std::string& system, bool phiSweep, bool thetaSweep, float thetaEnd, Acceleration acc) {
+int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float phi, float turns, uint32_t seed, uint16_t diffusion_steps, std::vector<int8_t>* species, std::vector<float>* spread, std::vector<std::vector<float>>* weights, int16_t* inputGrid, uint32_t inputGridPoints, int16_t** outGrid, int phi_num, float phi_deg, uint32_t stepper_resolution, SimulationParametersFull* params, std::string& system, bool phiSweep, bool thetaSweep, float thetaEnd, Acceleration acc, Collision collision_method) {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	// Magic numbers
@@ -512,9 +512,20 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	// Allocate memory for the grids we'll use
 	int8_t* grid = (int8_t*)malloc(sizeof(int8_t) * L * L * H);
 	uint32_t* ordered = (uint32_t*)malloc(sizeof(uint32_t) * L * L * H);
+	int8_t* collision_grid = nullptr;
+	if (collision_method == Collision::NN0) {
+		collision_grid = grid;
+	}
+	else {
+		collision_grid = (int8_t*)malloc(sizeof(int8_t) * L * L * H);
+	}
+
 	for (uint32_t i = 0; i < (uint32_t)L * (uint32_t)L * (uint32_t)H; i++) {
 		grid[i] = 0;
 		ordered[i] = 0;
+		if (collision_method != Collision::NN0) {
+			collision_grid[i] = 0;
+		}
 	}
 
 	int* diffusion_lengths = (int*)malloc(sizeof(int) * reps * 3);
@@ -522,6 +533,66 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	// Initialize with inputGrid if necessary
 	if (inputGrid != nullptr) {
 		maxh = sparseToDense(inputGrid, inputGridPoints, grid, L, H);
+	}
+
+	if (collision_method != Collision::NN0) {
+		int16_t row[3] = { 0, 0, 0};
+		for (uint32_t i = 0; i < inputGridPoints; i++) {
+			row[0] = inputGrid[i * 4];
+			row[1] = inputGrid[i * 4 + 1];
+			row[2] = inputGrid[i * 4 + 2];
+			collision_grid[row[2] * L * L + row[1] * L + row[0]] = row[3];
+
+			int xn1 = (((row[0] - 1) % L) + L) % L;
+			int xp1 = (((row[0] + 1) % L) + L) % L;
+			int yn1 = (((row[1] - 1) % L) + L) % L;
+			int yp1 = (((row[1] + 1) % L) + L) % L;
+			collision_grid[row[2] * L * L + row[1] * L + row[0]] = 1;
+			collision_grid[row[2] * L * L + row[1] * L + xn1] = 1;
+			collision_grid[row[2] * L * L + row[1] * L + xp1] = 1;
+			collision_grid[row[2] * L * L + yn1 * L + row[0]] = 1;
+			collision_grid[row[2] * L * L + yp1 * L + row[0]] = 1;
+
+			if (row[2] > 0) {
+				collision_grid[(row[2] - 1) * L * L + row[1] * L + row[0] + 1] += 1;
+			}
+
+			if (collision_method != Collision::NN1) {
+				collision_grid[row[2] * L * L + yn1 * L + xn1] = 1;
+				collision_grid[row[2] * L * L + yp1 * L + xp1] = 1;
+				collision_grid[row[2] * L * L + yn1 * L + xp1] = 1;
+				collision_grid[row[2] * L * L + yp1 * L + xn1] = 1;
+
+				if (row[2] > 0) {
+					collision_grid[(row[2] - 1) * L * L + row[1] * L + xn1] = 1;
+					collision_grid[(row[2] - 1) * L * L + row[1] * L + xp1] = 1;
+					collision_grid[(row[2] - 1) * L * L + yn1 * L + row[0]] = 1;
+					collision_grid[(row[2] - 1) * L * L + yp1 * L + row[0]] = 1;
+				}
+				if (row[2] < H - 1) {
+					collision_grid[(row[2] + 1) * L * L + row[1] * L + xn1] = 1;
+					collision_grid[(row[2] + 1) * L * L + row[1] * L + xp1] = 1;
+					collision_grid[(row[2] + 1) * L * L + yn1 * L + row[0]] = 1;
+					collision_grid[(row[2] + 1) * L * L + yp1 * L + row[0]] = 1;
+				}
+
+				if (collision_method != Collision::NN2) {
+					if (row[2] > 0) {
+						collision_grid[(row[2] - 1) * L * L + yn1 * L + xn1] = 1;
+						collision_grid[(row[2] - 1) * L * L + yp1 * L + xp1] = 1;
+						collision_grid[(row[2] - 1) * L * L + yn1 * L + xp1] = 1;
+						collision_grid[(row[2] - 1) * L * L + yp1 * L + xn1] = 1;
+					}
+					if (row[2] < H - 1) {
+						collision_grid[(row[2] + 1) * L * L + yn1 * L + xn1] = 1;
+						collision_grid[(row[2] + 1) * L * L + yp1 * L + xp1] = 1;
+						collision_grid[(row[2] + 1) * L * L + yn1 * L + xp1] = 1;
+						collision_grid[(row[2] + 1) * L * L + yp1 * L + xn1] = 1;
+					}
+				}
+			}
+		}
+		
 	}
 
 	// Free *outputGrid memory if allocated
@@ -657,7 +728,12 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 		src[2] = (maxh + v_offset);
 
 		// Send particle along
-		traversePathRealTime(src, dest, collision, grid, L, H);
+		if (collision_method == Collision::NN0) {
+			traversePathRealTime(src, dest, collision, grid, L, H);
+		}
+		else {
+			traversePathRealTime(src, dest, collision, collision_grid, L, H);
+		}
 
 		std::chrono::duration<double, std::milli> dural = std::chrono::high_resolution_clock::now() - startl;
 		timel += dural.count()/1000;
@@ -694,6 +770,59 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 			if (diffusing[2] > maxh) {
 				maxh = diffusing[2];
 			}
+
+			if (collision_method != Collision::NN0) {
+				int xn1 = (((diffusing[0] - 1) % L) + L) % L; 
+				int xp1 = (((diffusing[0] + 1) % L) + L) % L;
+				int yn1 = (((diffusing[1] - 1) % L) + L) % L;
+				int yp1 = (((diffusing[1] + 1) % L) + L) % L;
+				collision_grid[diffusing[2] * L * L + diffusing[1] * L + diffusing[0]] = 1;
+				collision_grid[diffusing[2] * L * L + diffusing[1] * L + xn1] = 1;
+				collision_grid[diffusing[2] * L * L + diffusing[1] * L + xp1] = 1;
+				collision_grid[diffusing[2] * L * L + yn1 * L + diffusing[0]] = 1;
+				collision_grid[diffusing[2] * L * L + yp1 * L + diffusing[0]] = 1;
+
+				if (diffusing[2] > 0) {
+					collision_grid[(diffusing[2] - 1) * L * L + diffusing[1] * L + diffusing[0] + 1] += 1;
+				}
+
+				if (collision_method != Collision::NN1) {
+					collision_grid[diffusing[2] * L * L + yn1 * L + xn1] = 1;
+					collision_grid[diffusing[2] * L * L + yp1 * L + xp1] = 1;
+					collision_grid[diffusing[2] * L * L + yn1 * L + xp1] = 1;
+					collision_grid[diffusing[2] * L * L + yp1 * L + xn1] = 1;
+
+					if (diffusing[2] > 0) {
+						collision_grid[(diffusing[2] - 1) * L * L + diffusing[1] * L + xn1] = 1;
+						collision_grid[(diffusing[2] - 1) * L * L + diffusing[1] * L + xp1] = 1;
+						collision_grid[(diffusing[2] - 1) * L * L + yn1 * L + diffusing[0]] = 1;
+						collision_grid[(diffusing[2] - 1) * L * L + yp1 * L + diffusing[0]] = 1;
+					}
+					if (diffusing[2] < H - 1) {
+						collision_grid[(diffusing[2] + 1) * L * L + diffusing[1] * L + xn1] = 1;
+						collision_grid[(diffusing[2] + 1) * L * L + diffusing[1] * L + xp1] = 1;
+						collision_grid[(diffusing[2] + 1) * L * L + yn1 * L + diffusing[0]] = 1;
+						collision_grid[(diffusing[2] + 1) * L * L + yp1 * L + diffusing[0]] = 1;
+					}
+
+					if (collision_method != Collision::NN2) {
+						if (diffusing[2] > 0) {
+							collision_grid[(diffusing[2] - 1) * L * L + yn1 * L + xn1] = 1;
+							collision_grid[(diffusing[2] - 1) * L * L + yp1 * L + xp1] = 1;
+							collision_grid[(diffusing[2] - 1) * L * L + yn1 * L + xp1] = 1;
+							collision_grid[(diffusing[2] - 1) * L * L + yp1 * L + xn1] = 1;
+						}
+						if (diffusing[2] < H - 1) {
+							collision_grid[(diffusing[2] + 1) * L * L + yn1 * L + xn1] = 1;
+							collision_grid[(diffusing[2] + 1) * L * L + yp1 * L + xp1] = 1;
+							collision_grid[(diffusing[2] + 1) * L * L + yn1 * L + xp1] = 1;
+							collision_grid[(diffusing[2] + 1) * L * L + yp1 * L + xn1] = 1;
+						}
+					}
+				}
+			}
+
+			// Record diffusion length
 			diffusion_lengths[deposited * 3] = diffusing[0] - collision[0];
 			diffusion_lengths[deposited * 3 + 1] = diffusing[1] - collision[1];
 			diffusion_lengths[deposited * 3 + 2] = diffusing[2] - collision[2];
@@ -709,6 +838,8 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 			else if (diffusion_lengths[deposited * 3 + 1] < -diffusion_steps) {
 				diffusion_lengths[deposited * 3 + 1] = L + diffusion_lengths[deposited * 3 + 1];
 			}
+
+
 			deposited += 1;
 		}
 		else {
@@ -763,6 +894,8 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	layer_params->time_taken = time;
 	layer_params->time_finished = epoch_time;
 	layer_params->theta_end = thetaSweep ? thetaEnd : theta;
+	layer_params->collision_method = (uint8_t)collision_method;
+	layer_params->acceleration = (uint8_t)acc;
 	params->addLayer(layer_params);
 	params->serialize();
 
@@ -821,6 +954,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	free(grid);
 	free(ordered);
 	free(diffusion_lengths);
+	free(collision_grid);
 	//free(points);
 	return point_total;
 }

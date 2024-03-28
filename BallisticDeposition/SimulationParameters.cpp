@@ -109,6 +109,43 @@ void SimulationParametersFull::serialize() {
 				serialization += "], ";
 			}
 		}
+		if (p->acceleration == 0) {
+			serialization += "\"Acceleration method\": NONE, ";
+		}
+		else if (p->acceleration == 1) {
+			serialization += "\"Acceleration method\": ACC, ";
+		}
+		else if (p->acceleration == 2) {
+			serialization += "\"Acceleration method\": DEC, ";
+		}
+		else if (p->acceleration == 3) {
+			serialization += "\"Acceleration method\": BICONE, ";
+		}
+		else if (p->acceleration == 4) {
+			serialization += "\"Acceleration method\": HOURGLASS, ";
+		}
+		else {
+			serialization += "\"Acceleration method\": undefined, ";
+		}
+		serialization += "\"Acceleration method code\": " + std::to_string(p->acceleration) + ", ";
+
+		if (p->collision_method == 0) {
+			serialization += "\"Collision method\": NNO, ";
+		}
+		else if(p->collision_method == 1) {
+			serialization += "\"Collision method\": NN1, ";
+		}
+		else if(p->collision_method == 2) {
+			serialization += "\"Collision method\": NN2, ";
+		}
+		else if(p->collision_method == 3) {
+			serialization += "\"Collision method\": NN3, ";
+		}
+		else {
+			serialization += "\"Collision method\": undefined, ";
+		}
+		serialization += "\"Acceleration method code\": " + std::to_string(p->collision_method) + ", ";
+		
 		serialization += "\"Seed\": " + std::to_string(p->seed) + ", ";
 		serialization += "\"Time taken\": " + std::to_string(p->time_taken) + ", ";
 		serialization += "\"Time finished\": " + std::to_string(p->time_finished) + "}}";
