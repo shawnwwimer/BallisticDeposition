@@ -18,16 +18,7 @@
     <ClCompile Include="BallisticDeposition.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SimulationParameters.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Simulation3D.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\lib\cnpy\cnpy.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Surface3D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\lib\minizip\unzip.c">
@@ -39,38 +30,35 @@
     <ClCompile Include="..\lib\minizip\ioapi.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SlantedCorridors.cpp">
+    <ClCompile Include="..\Core\cts\CubicSpacePartition.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SimulationContinuous.cpp">
+    <ClCompile Include="..\Core\math_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Matrix3DLateralPBC.cpp">
+    <ClCompile Include="..\Core\cts\Matrix3DLateralPBC.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VectorFieldLateralPBC.cpp">
+    <ClCompile Include="..\Core\discrete\Simulation3D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="math_utils.cpp">
+    <ClCompile Include="..\Core\cts\SimulationContinuous.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CubicSpacePartition.cpp">
+    <ClCompile Include="..\Core\SimulationParameters.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Core\cts\SlantedCorridors.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Core\discrete\Surface3D.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Core\cts\VectorFieldLateralPBC.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="math_utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Simulation3D.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SimulationParameters.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Surface3D.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\lib\cnpy\cnpy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -92,25 +80,37 @@
     <ClInclude Include="..\lib\minizip\crypt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SimulationContinuous.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SlantedCorridors.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CubicSpacePartition.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Matrix3DLateralPBC.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VectorFieldLateralPBC.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\lib\NLopt\nlopt.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\lib\NLopt\nlopt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\cts\CubicSpacePartition.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\cts\Matrix3DLateralPBC.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\cts\SimulationContinuous.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\cts\SlantedCorridors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\cts\VectorFieldLateralPBC.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\discrete\Simulation3D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\discrete\Surface3D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\math_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\SimulationParameters.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

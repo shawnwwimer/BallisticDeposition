@@ -3,8 +3,8 @@
 
 #include <iostream>
 #include <vector>
-#include "Simulation3D.h"
-#include "SimulationContinuous.h"
+#include "../Core/discrete/Simulation3D.h"
+#include "../Core/cts/SimulationContinuous.h"
 
 // should be modified to take radius into account
 float estimate_binsize(float flux_angle, float radius) {
@@ -56,7 +56,7 @@ int main()
                 else {
                     treps = reps;
                 }
-                obliqueDepositionContinuous(t, L, H+32, treps, estimate_binsize(t, radii[0]), seed, d, 5, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::NumericalMinimization, &save_params);
+                obliqueDepositionContinuous(t, L, H+32, treps, estimate_binsize(t, radii[0]), seed, d, 5, &species, &radii, &weights, inputGrid, &params, system, DiffusionMethod::NumericalMinimization, &save_params, "structures");
 
                 params.clearLayers();
             }
@@ -64,12 +64,14 @@ int main()
     }
     else {
         float theta = 85;
-        uint16_t L = 512;
-        uint16_t H = 800;
-        uint32_t reps = 8192 * 32 * 8 * 4 * 2;
+        uint16_t L = 256;
+        uint16_t H = 256;
+        uint32_t reps = 8192 * 32 * 8 * 4*2/16;
         float phi = 0;
         float turns = 2;
+        float phi_sweep = 45;
         uint32_t seed = 1550479086;
+        uint32_t seed2 = 38791952;
         uint16_t diffusion_steps = 5;
         std::vector<int8_t> sSi = { 1 };
         std::vector<int8_t> sAg = { 2 };
@@ -106,8 +108,27 @@ int main()
         std::vector<int> Ds = { 0, 1, 2, 5, 10, 15, 20, 25, 30, 50, 75, 100 };
         float spreads[6] = { 1e-6, 1.f, 2.f, 3.f, 4.f, 5.f };
 
-        points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 5, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE);
+
+        //points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 15, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 16, phi_sweep, stepper_resolution, &params, ySi, true, false, 0, Acceleration::NONE, Collision::NN1);
+        //points = obliqueDeposition(theta, L, H, reps/8, 0, 0, seed+seed2, 20, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 2, phi_sweep, stepper_resolution, &params, ySiAg, true, false, 0, Acceleration::NONE, Collision::NN1);
+        //params.clearLayers();
+        //points = obliqueDeposition(theta, L, H, reps, 0, 1, seed, 15, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 8, phi_sweep, stepper_resolution, &params, ySi, true, false, 0, Acceleration::NONE, Collision::NN1);
+        //points = obliqueDeposition(theta, L, H, reps/8, 0, 0.15, seed+seed2, 20, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 2, phi_sweep, stepper_resolution, &params, ySiAg, true, false, 0, Acceleration::NONE, Collision::NN1);
         params.clearLayers();
+        points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 15, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE, Collision::NN1, "structures");
+        //points = obliqueDeposition(theta, L, H, reps / 8, 0, 0, seed+seed2, 20, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, 0, Acceleration::NONE, Collision::NN1);
+        params.clearLayers();
+        //points = obliqueDeposition(theta, L, H, reps, 0, 1, seed, 5, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, ySi, false, false, 0, Acceleration::NONE, Collision::NN1);
+        //points = obliqueDeposition(theta, L, H, reps / 8, 0, 0.15, seed+seed2, 20, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 0, 0, stepper_resolution, &params, ySiAg, false, false, 0, Acceleration::NONE, Collision::NN1);
+        //params.clearLayers();
+
+        phi_sweep = 30;
+        //points = obliqueDeposition(theta, L, H, reps, 0, 0, seed, 15, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 16, phi_sweep, stepper_resolution, &params, ySi, true, false, 0, Acceleration::NONE, Collision::NN1);
+        //points = obliqueDeposition(theta, L, H, reps / 8, 0, 0, seed + seed2, 20, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 2, phi_sweep, stepper_resolution, &params, ySiAg, true, false, 0, Acceleration::NONE, Collision::NN1);
+        params.clearLayers();
+        //points = obliqueDeposition(theta, L, H, reps, 0, 1, seed, 15, &sSi, &spread, &Si, inputGrid, inputGridPoints, outGrid, 8, phi_sweep, stepper_resolution, &params, ySi, true, false, 0, Acceleration::NONE, Collision::NN1);
+        //points = obliqueDeposition(theta, L, H, reps / 8, 0, 0.15, seed + seed2, 20, &sAg, &spread, &SiAg, *outGrid, points, outGrid, 2, phi_sweep, stepper_resolution, &params, ySiAg, true, false, 0, Acceleration::NONE, Collision::NN1);
+        //params.clearLayers();
         //points = obliqueDeposition(thetas[t], L, H, reps, 0, , seed, Ds[i], &sZrO2, &spread, &ZrO2, inputGrid, inputGridPoints, outGrid, 0, 0, stepper_resolution, &params, yZrO2, false, false, Acceleration::NONE);
         //params.clearLayers();
     }

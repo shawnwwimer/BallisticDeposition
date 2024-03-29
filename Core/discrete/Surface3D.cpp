@@ -1,5 +1,5 @@
 #include "Surface3D.h"
-#include "math_utils.h"
+#include "../math_utils.h"
 
 Surface3D::Surface3D(uint16_t length, uint16_t height, uint16_t width, int8_t* grid, std::vector<int8_t>* species, std::vector<std::vector<float>>* weights, uint32_t seed)
 {

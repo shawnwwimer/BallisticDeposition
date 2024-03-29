@@ -145,22 +145,31 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Core\cts\CubicSpacePartition.cpp" />
+    <ClCompile Include="..\Core\cts\Matrix3DLateralPBC.cpp" />
+    <ClCompile Include="..\Core\cts\SimulationContinuous.cpp" />
+    <ClCompile Include="..\Core\cts\SlantedCorridors.cpp" />
+    <ClCompile Include="..\Core\cts\VectorFieldLateralPBC.cpp" />
+    <ClCompile Include="..\Core\discrete\Simulation3D.cpp" />
+    <ClCompile Include="..\Core\discrete\Surface3D.cpp" />
+    <ClCompile Include="..\Core\math_utils.cpp" />
+    <ClCompile Include="..\Core\SimulationParameters.cpp" />
     <ClCompile Include="..\lib\cnpy\cnpy.cpp" />
     <ClCompile Include="..\lib\minizip\ioapi.c" />
     <ClCompile Include="..\lib\minizip\unzip.c" />
     <ClCompile Include="..\lib\minizip\zip.c" />
     <ClCompile Include="BallisticDeposition.cpp" />
-    <ClCompile Include="CubicSpacePartition.cpp" />
-    <ClCompile Include="math_utils.cpp" />
-    <ClCompile Include="Matrix3DLateralPBC.cpp" />
-    <ClCompile Include="Simulation3D.cpp" />
-    <ClCompile Include="SimulationContinuous.cpp" />
-    <ClCompile Include="SimulationParameters.cpp" />
-    <ClCompile Include="SlantedCorridors.cpp" />
-    <ClCompile Include="Surface3D.cpp" />
-    <ClCompile Include="VectorFieldLateralPBC.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Core\cts\CubicSpacePartition.h" />
+    <ClInclude Include="..\Core\cts\Matrix3DLateralPBC.h" />
+    <ClInclude Include="..\Core\cts\SimulationContinuous.h" />
+    <ClInclude Include="..\Core\cts\SlantedCorridors.h" />
+    <ClInclude Include="..\Core\cts\VectorFieldLateralPBC.h" />
+    <ClInclude Include="..\Core\discrete\Simulation3D.h" />
+    <ClInclude Include="..\Core\discrete\Surface3D.h" />
+    <ClInclude Include="..\Core\math_utils.h" />
+    <ClInclude Include="..\Core\SimulationParameters.h" />
     <ClInclude Include="..\lib\cnpy\cnpy.h" />
     <ClInclude Include="..\lib\minizip\crypt.h" />
     <ClInclude Include="..\lib\minizip\ioapi.h" />
@@ -170,15 +179,6 @@
     <ClInclude Include="..\lib\NLopt\nlopt.hpp" />
     <ClInclude Include="..\lib\zlib\zconf.h" />
     <ClInclude Include="..\lib\zlib\zlib.h" />
-    <ClInclude Include="CubicSpacePartition.h" />
-    <ClInclude Include="math_utils.h" />
-    <ClInclude Include="Matrix3DLateralPBC.h" />
-    <ClInclude Include="Simulation3D.h" />
-    <ClInclude Include="SimulationContinuous.h" />
-    <ClInclude Include="SimulationParameters.h" />
-    <ClInclude Include="SlantedCorridors.h" />
-    <ClInclude Include="Surface3D.h" />
-    <ClInclude Include="VectorFieldLateralPBC.h" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\lib\zlib\zlibstatic.lib" />

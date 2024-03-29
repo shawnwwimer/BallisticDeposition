@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 #include <array>
-#include "math_utils.h"
+#include "../math_utils.h"
 
 class VectorFieldLateralPBC
 {

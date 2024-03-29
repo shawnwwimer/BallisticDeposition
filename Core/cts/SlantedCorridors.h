@@ -9,7 +9,7 @@
 #include <cmath>
 #include "cnpy.h"
 
-#include "math_utils.h"
+#include "../math_utils.h"
 
 struct particle_priority
 {

@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <random>
 #include "cnpy.h"
-#include "math_utils.h"
+#include "../math_utils.h"
 
 
 class Matrix3DLateralPBC

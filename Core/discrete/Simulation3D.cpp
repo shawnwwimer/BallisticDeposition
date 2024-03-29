@@ -499,7 +499,7 @@ int writeFileToZip(const char* zipname, const char* filename)
 	return error;
 }
 
-int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float phi, float turns, uint32_t seed, uint16_t diffusion_steps, std::vector<int8_t>* species, std::vector<float>* spread, std::vector<std::vector<float>>* weights, int16_t* inputGrid, uint32_t inputGridPoints, int16_t** outGrid, int phi_num, float phi_deg, uint32_t stepper_resolution, SimulationParametersFull* params, std::string& system, bool phiSweep, bool thetaSweep, float thetaEnd, Acceleration acc, Collision collision_method) {
+int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float phi, float turns, uint32_t seed, uint16_t diffusion_steps, std::vector<int8_t>* species, std::vector<float>* spread, std::vector<std::vector<float>>* weights, int16_t* inputGrid, uint32_t inputGridPoints, int16_t** outGrid, int phi_num, float phi_deg, uint32_t stepper_resolution, SimulationParametersFull* params, std::string& system, bool phiSweep, bool thetaSweep, float thetaEnd, Acceleration acc, Collision collision_method, std::string directory) {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	// Magic numbers
@@ -910,7 +910,7 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 		turns_str.erase(turns_str.find_last_not_of('.') + 1, std::string::npos);
 	}
 	int phi_val = phiSweep ? phi_num : 0;
-	std::string filename = "structures/STF_" + system + "_L" + std::to_string(L) + turns_str + "_Th" + theta_str + "_D" + std::to_string(diffusion_steps) + "_N" + std::to_string(params->deposited) + "_PS" + std::to_string(phi_val) + "_" + std::to_string(epoch_time);
+	std::string filename = directory + "/STF_" + system + "_L" + std::to_string(L) + turns_str + "_Th" + theta_str + "_D" + std::to_string(diffusion_steps) + "_N" + std::to_string(params->deposited) + "_PS" + std::to_string(phi_val) + "_" + std::to_string(epoch_time);
 
 	// Save objects
 	uint32_t point_total = denseToSparse(grid, outGrid, L, H);

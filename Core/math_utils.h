@@ -3,7 +3,7 @@
 #ifndef MATH_UTILS_H_
 #define MATH_UTILS_H_
 #include <math.h>
-#include<cstdint>
+#include <cstdint>
 
 template<typename T>
 T modulo(T val, uint16_t mod) {
