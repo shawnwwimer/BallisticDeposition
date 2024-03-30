@@ -37,7 +37,8 @@ namespace BDDLL {
 	public:
 		BallisticSimulation();
 
-		int DiscreteSimulation(float theta, 
+		int DiscreteSimulation(
+			float theta, 
 			uint16_t L, 
 			uint16_t H, 
 			uint32_t reps, 
@@ -61,5 +62,37 @@ namespace BDDLL {
 			Acceleration acc, 
 			Collision collision_method, 
 			System::String^ directory);
+
+		int initializeSimulation(uint16_t L, uint16_t W, uint16_t H);
+		void cleanup();
+		int simulateFilm(
+			float theta,
+			uint16_t L,
+			uint16_t H,
+			uint32_t reps,
+			float phi,
+			float turns,
+			uint32_t seed,
+			uint16_t diffusion_steps,
+			List<System::Byte>^ species,
+			List<List<float>^>^ weights,
+			List<float>^ spread,
+			int phi_num,
+			float phi_deg,
+			bool thetaSweep,
+			float thetaEnd,
+			uint32_t stepper_resolution,
+			System::String^ system,
+			Acceleration acc,
+			Collision collision_method,
+			System::String^ directory);
+
+	private:
+		int16_t* inGrid = nullptr;
+		uint32_t inGridPoints = 0;
+		int16_t** outGrid = nullptr;
+		SimulationParametersFull* params = nullptr;
+		bool initialized = false;
+		bool simulating_now = false;
 	};
 }

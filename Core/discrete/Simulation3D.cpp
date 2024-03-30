@@ -511,13 +511,26 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 
 	// Allocate memory for the grids we'll use
 	int8_t* grid = (int8_t*)malloc(sizeof(int8_t) * L * L * H);
+	if (grid == nullptr) {
+		return -1;
+	}
 	uint32_t* ordered = (uint32_t*)malloc(sizeof(uint32_t) * L * L * H);
+	if (ordered == nullptr) {
+		free(grid);
+		return -2;
+	}
+
 	int8_t* collision_grid = nullptr;
 	if (collision_method == Collision::NN0) {
 		collision_grid = grid;
 	}
 	else {
 		collision_grid = (int8_t*)malloc(sizeof(int8_t) * L * L * H);
+		if (collision_grid == nullptr) {
+			free(grid);
+			free(ordered);
+			return -3;
+		}
 	}
 
 	for (uint32_t i = 0; i < (uint32_t)L * (uint32_t)L * (uint32_t)H; i++) {
@@ -529,71 +542,80 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	}
 
 	int* diffusion_lengths = (int*)malloc(sizeof(int) * reps * 3);
+	if (diffusion_lengths == nullptr) {
+		free(grid);
+		free(ordered);
+		if (collision_grid != nullptr) {
+			free(collision_grid);
+		}
+		return -4;
+	}
 
 	// Initialize with inputGrid if necessary
 	if (inputGrid != nullptr) {
 		maxh = sparseToDense(inputGrid, inputGridPoints, grid, L, H);
-	}
 
-	if (collision_method != Collision::NN0) {
-		int16_t row[3] = { 0, 0, 0};
-		for (uint32_t i = 0; i < inputGridPoints; i++) {
-			row[0] = inputGrid[i * 4];
-			row[1] = inputGrid[i * 4 + 1];
-			row[2] = inputGrid[i * 4 + 2];
-			collision_grid[row[2] * L * L + row[1] * L + row[0]] = row[3];
+		if (collision_method != Collision::NN0) {
+			int16_t row[3] = { 0, 0, 0 };
+			for (uint32_t i = 0; i < inputGridPoints; i++) {
+				row[0] = inputGrid[i * 4];
+				row[1] = inputGrid[i * 4 + 1];
+				row[2] = inputGrid[i * 4 + 2];
+				collision_grid[row[2] * L * L + row[1] * L + row[0]] += 1;
 
-			int xn1 = (((row[0] - 1) % L) + L) % L;
-			int xp1 = (((row[0] + 1) % L) + L) % L;
-			int yn1 = (((row[1] - 1) % L) + L) % L;
-			int yp1 = (((row[1] + 1) % L) + L) % L;
-			collision_grid[row[2] * L * L + row[1] * L + row[0]] = 1;
-			collision_grid[row[2] * L * L + row[1] * L + xn1] = 1;
-			collision_grid[row[2] * L * L + row[1] * L + xp1] = 1;
-			collision_grid[row[2] * L * L + yn1 * L + row[0]] = 1;
-			collision_grid[row[2] * L * L + yp1 * L + row[0]] = 1;
-
-			if (row[2] > 0) {
-				collision_grid[(row[2] - 1) * L * L + row[1] * L + row[0] + 1] += 1;
-			}
-
-			if (collision_method != Collision::NN1) {
-				collision_grid[row[2] * L * L + yn1 * L + xn1] = 1;
-				collision_grid[row[2] * L * L + yp1 * L + xp1] = 1;
-				collision_grid[row[2] * L * L + yn1 * L + xp1] = 1;
-				collision_grid[row[2] * L * L + yp1 * L + xn1] = 1;
+				int xn1 = (((row[0] - 1) % L) + L) % L;
+				int xp1 = (((row[0] + 1) % L) + L) % L;
+				int yn1 = (((row[1] - 1) % L) + L) % L;
+				int yp1 = (((row[1] + 1) % L) + L) % L;
+				collision_grid[row[2] * L * L + row[1] * L + row[0]] = 1;
+				collision_grid[row[2] * L * L + row[1] * L + xn1] = 1;
+				collision_grid[row[2] * L * L + row[1] * L + xp1] = 1;
+				collision_grid[row[2] * L * L + yn1 * L + row[0]] = 1;
+				collision_grid[row[2] * L * L + yp1 * L + row[0]] = 1;
 
 				if (row[2] > 0) {
-					collision_grid[(row[2] - 1) * L * L + row[1] * L + xn1] = 1;
-					collision_grid[(row[2] - 1) * L * L + row[1] * L + xp1] = 1;
-					collision_grid[(row[2] - 1) * L * L + yn1 * L + row[0]] = 1;
-					collision_grid[(row[2] - 1) * L * L + yp1 * L + row[0]] = 1;
-				}
-				if (row[2] < H - 1) {
-					collision_grid[(row[2] + 1) * L * L + row[1] * L + xn1] = 1;
-					collision_grid[(row[2] + 1) * L * L + row[1] * L + xp1] = 1;
-					collision_grid[(row[2] + 1) * L * L + yn1 * L + row[0]] = 1;
-					collision_grid[(row[2] + 1) * L * L + yp1 * L + row[0]] = 1;
+					collision_grid[(row[2] - 1) * L * L + row[1] * L + row[0] + 1] += 1;
 				}
 
-				if (collision_method != Collision::NN2) {
+				if (collision_method != Collision::NN1) {
+					collision_grid[row[2] * L * L + yn1 * L + xn1] = 1;
+					collision_grid[row[2] * L * L + yp1 * L + xp1] = 1;
+					collision_grid[row[2] * L * L + yn1 * L + xp1] = 1;
+					collision_grid[row[2] * L * L + yp1 * L + xn1] = 1;
+
 					if (row[2] > 0) {
-						collision_grid[(row[2] - 1) * L * L + yn1 * L + xn1] = 1;
-						collision_grid[(row[2] - 1) * L * L + yp1 * L + xp1] = 1;
-						collision_grid[(row[2] - 1) * L * L + yn1 * L + xp1] = 1;
-						collision_grid[(row[2] - 1) * L * L + yp1 * L + xn1] = 1;
+						collision_grid[(row[2] - 1) * L * L + row[1] * L + xn1] = 1;
+						collision_grid[(row[2] - 1) * L * L + row[1] * L + xp1] = 1;
+						collision_grid[(row[2] - 1) * L * L + yn1 * L + row[0]] = 1;
+						collision_grid[(row[2] - 1) * L * L + yp1 * L + row[0]] = 1;
 					}
 					if (row[2] < H - 1) {
-						collision_grid[(row[2] + 1) * L * L + yn1 * L + xn1] = 1;
-						collision_grid[(row[2] + 1) * L * L + yp1 * L + xp1] = 1;
-						collision_grid[(row[2] + 1) * L * L + yn1 * L + xp1] = 1;
-						collision_grid[(row[2] + 1) * L * L + yp1 * L + xn1] = 1;
+						collision_grid[(row[2] + 1) * L * L + row[1] * L + xn1] = 1;
+						collision_grid[(row[2] + 1) * L * L + row[1] * L + xp1] = 1;
+						collision_grid[(row[2] + 1) * L * L + yn1 * L + row[0]] = 1;
+						collision_grid[(row[2] + 1) * L * L + yp1 * L + row[0]] = 1;
+					}
+
+					if (collision_method != Collision::NN2) {
+						if (row[2] > 0) {
+							collision_grid[(row[2] - 1) * L * L + yn1 * L + xn1] = 1;
+							collision_grid[(row[2] - 1) * L * L + yp1 * L + xp1] = 1;
+							collision_grid[(row[2] - 1) * L * L + yn1 * L + xp1] = 1;
+							collision_grid[(row[2] - 1) * L * L + yp1 * L + xn1] = 1;
+						}
+						if (row[2] < H - 1) {
+							collision_grid[(row[2] + 1) * L * L + yn1 * L + xn1] = 1;
+							collision_grid[(row[2] + 1) * L * L + yp1 * L + xp1] = 1;
+							collision_grid[(row[2] + 1) * L * L + yn1 * L + xp1] = 1;
+							collision_grid[(row[2] + 1) * L * L + yp1 * L + xn1] = 1;
+						}
 					}
 				}
 			}
 		}
-		
 	}
+
+	
 
 	// Free *outputGrid memory if allocated
 	// Done after initialization with inputGrid in case outGrid was used for it
@@ -954,7 +976,9 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	free(grid);
 	free(ordered);
 	free(diffusion_lengths);
-	free(collision_grid);
+	if (collision_grid != grid) {
+		free(collision_grid);
+	}
 	//free(points);
 	return point_total;
 }
