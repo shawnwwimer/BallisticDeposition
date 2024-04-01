@@ -34,7 +34,7 @@ A C++/CLI DLL that exposes methods for discrete simulation. The wrapper class `B
 
 ## BDSS
 A WPF project that uses BD_DLL to simulate multilayer films. Currently it is in a rudimentary state, configured for basic Si simulations, so it is not currently possible to include multiple elements, redefine the diffusion weights, choose a different collision method, or an acceleration pattern. As BD_DLL does not yet implement continuous simulations, neither does BDSS.
-![Example of setup for multilayer deposition](images/BDSS.png)
+![Example of setup for multilayer deposition](images/BDSS.PNG)
 
 # Files and analysis
 The simulations are saved in compressed file containers, including the positions of particles in the simulated film, simulation parameters, and the diffusion length.
