@@ -974,10 +974,14 @@ int obliqueDeposition(float theta, uint16_t L, uint16_t H, uint32_t reps, float 
 	// Free memory
 	delete surface;
 	free(grid);
+	//grid = nullptr;
 	free(ordered);
+	//ordered = nullptr;
 	free(diffusion_lengths);
+	//diffusion_lengths = nullptr;
 	if (collision_grid != grid) {
 		free(collision_grid);
+		//collision_grid = nullptr;
 	}
 	//free(points);
 	return point_total;

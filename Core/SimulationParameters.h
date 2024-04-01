@@ -7,34 +7,34 @@ class SimulationParametersIndividual
 {
 public:
 	// Physical parameters
-	uint16_t length;
-	uint16_t width;
-	uint16_t height;
-	float theta;
-	float phi;
-	float turns;
-	std::vector<float> * spread;
+	uint16_t length = 0;
+	uint16_t width = 0;
+	uint16_t height = 0;
+	float theta = 0;
+	float phi = 0;
+	float turns = 0;
+	std::vector<float> * spread = nullptr;
 	int phi_num = 0;
 	float phi_deg = 0;
-	float theta_end;
-	uint32_t stepper_resolution;
+	float theta_end = 0;
+	uint32_t stepper_resolution = 0;
 	
 	// Material parameters
-	std::vector<int8_t> * species;
-	uint16_t diffusion_steps;
-	uint32_t deposited;
-	uint32_t repetitions;
-	std::vector<std::vector<float>>* weights;
-	std::string system;
+	std::vector<int8_t> * species = nullptr;
+	uint16_t diffusion_steps = 0;
+	uint32_t deposited = 0;
+	uint32_t repetitions = 0;
+	std::vector<std::vector<float>>* weights = nullptr;
+	std::string system = "";
 
 	// Simulation parameters
-	uint32_t seed;
-	uint8_t acceleration;
-	uint8_t collision_method;
+	uint32_t seed = 0;
+	uint8_t acceleration = 0;
+	uint8_t collision_method = 0;
 
 	// Timing
-	double time_taken;
-	uint32_t time_finished;
+	double time_taken = 0;
+	uint32_t time_finished = 0;
 	
 
 };

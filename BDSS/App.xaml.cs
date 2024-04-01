@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using Caliburn.Micro;
 
 namespace BDSS
 {
@@ -13,5 +14,11 @@ namespace BDSS
     /// </summary>
     public partial class App : Application
     {
+        //private readonly AppBootstrapper _bootstrapper = new AppBootstrapper();
+
+        //protected override void OnStartup(StartupEventArgs e)
+        //{
+        //    base.OnStartup(e);
+        //}
     }
 }

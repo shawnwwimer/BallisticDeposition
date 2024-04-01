@@ -106,13 +106,23 @@ int BDDLL::BallisticSimulation::initializeSimulation(uint16_t L, uint16_t W, uin
 }
 
 void BDDLL::BallisticSimulation::cleanup() {
-	free(*outGrid);
-	*outGrid = nullptr;
-	free(outGrid);
-	outGrid = nullptr;
-	free(inGrid);
-	inGrid = nullptr;
-	inGridPoints = 0;
+	if (*outGrid != nullptr) {
+		free(*outGrid);
+		if (inGrid == *outGrid) {
+			inGrid = nullptr;
+		}
+		*outGrid = nullptr;
+	}
+	if (outGrid != nullptr) {
+		free(outGrid);
+		outGrid = nullptr;
+	}
+	if (inGrid != nullptr) {
+		free(inGrid);
+		inGrid = nullptr;
+		inGridPoints = 0;
+	}
+	
 	delete params;
 	params = nullptr;
 	initialized = false;
@@ -141,11 +151,11 @@ int BDDLL::BallisticSimulation::simulateFilm(
 	Collision collision_method,
 	System::String^ directory
 ) {
-	int ret = this->initializeSimulation(L, L, H);
-	if (ret != 0) {
-		this->cleanup();
-		return -1;
-	}
+	//int ret = this->initializeSimulation(L, L, H);
+	//if (ret != 0) {
+	//	this->cleanup();
+	//	return -1;
+	//}
 	this->simulating_now = true;
 
 	// Convert to native types
@@ -171,6 +181,9 @@ int BDDLL::BallisticSimulation::simulateFilm(
 		nativeWeights.push_back(nativeInnerVector);
 	}
 
+	//std::cout << inGrid << ", " << inGridPoints << std::endl;
+	//std::cout << *outGrid << std::endl;
+
 	uint32_t points = 0;
 	if (phi_num == 0) {
 		points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, diffusion_steps, &nativeSpecies, &nativeSpread, &nativeWeights, this->inGrid, inGridPoints, this->outGrid, 0, 0, stepper_resolution, this->params, nativeSystem, false, thetaSweep, thetaEnd, acc, collision_method, nativeDirectory);
@@ -178,9 +191,15 @@ int BDDLL::BallisticSimulation::simulateFilm(
 	else {
 		points = obliqueDeposition(theta, L, H, reps, phi, turns, seed, diffusion_steps, &nativeSpecies, &nativeSpread, &nativeWeights, this->inGrid, inGridPoints, this->outGrid, phi_num, phi_deg, stepper_resolution, this->params, nativeSystem, true, thetaSweep, thetaEnd, acc, collision_method, nativeDirectory);
 	}
-	inGridPoints += points;
+	//std::cout << inGrid << ", " << inGridPoints << std::endl;
+	//std::cout << *outGrid << std::endl;
+	
+	//free(inGrid);
+	inGrid = *outGrid;
+	inGridPoints = points;
 
-	this->cleanup();
+	//std::cout << "Simulated a film." << std::endl;
+	//this->cleanup();
 	this->simulating_now = false;
 	return points;
 }

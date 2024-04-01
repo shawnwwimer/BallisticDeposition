@@ -12,7 +12,7 @@
 #include "../SimulationParameters.h"
 #include "Surface3D.h"
 
-enum Acceleration
+public enum Acceleration
 {
 	NONE,
 	ACC,
@@ -21,7 +21,7 @@ enum Acceleration
 	HOURGLASS
 };
 
-enum Collision {
+public enum Collision {
 	NN0,
 	NN1,
 	NN2,
