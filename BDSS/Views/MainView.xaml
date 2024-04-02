@@ -2,7 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:cal="http://www.caliburnproject.org"
-             Height="350" Width="475">
+             Height="350" Width="475" Background="#FF636576">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="5" />
@@ -18,9 +18,10 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Column="1" Grid.Row="1" Width="120">
-            <TextBlock>Material | L | Theta (&#x00B0;)</TextBlock>
+            <TextBlock>Material | Theta | Turns</TextBlock>
             <ListBox x:Name="LayerParameters" Height="300" 
-                     SelectedItem="{Binding SelectedLayerParameters, Mode=TwoWay}">
+                     SelectedItem="{Binding SelectedLayerParameters, Mode=TwoWay}"
+                     Background="#FFA7B7C7">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="Height" Value="20"/>
@@ -31,21 +32,23 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding MaterialSystem}"/>
                             <TextBlock Text=" | "/>
-                            <TextBlock Text="{Binding L}"/>
-                            <TextBlock Text=" | "/>
                             <TextBlock Text="{Binding Theta}"/>
+                            <TextBlock Text="&#x00B0; | "/>
+                            <TextBlock Text="{Binding Turns}"/>
+                            
 
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
             <StackPanel Orientation="Horizontal" Margin="5,5">
-                <Button x:Name="AddLayerParameters" Content="Add New"/>
-                <Button x:Name="RunAllFunctions" Content="Run All" />
+                <Button x:Name="AddLayerParameters" Content="Add "/>
+                <Button x:Name="RemoveLayerParameters" Content="Remove"/>
+                <Button x:Name="RunAllFunctions" Content="Run" />
             </StackPanel>
         </StackPanel>
 
-        <StackPanel Grid.Column="3" Grid.Row="1" Margin="0,5" DataContext="{Binding SelectedLayerParameters}">
+        <StackPanel Grid.Column="3" Grid.Row="1" Margin="0,5">
             <StackPanel.Resources>
                 <Style TargetType="{x:Type TextBox}">
                     <Setter Property="Margin" Value="5,5,0,0"/>
@@ -69,79 +72,72 @@
             
             <StackPanel Orientation="Horizontal">
                 <Label>Theta: </Label>
-                <TextBox Text="{Binding Theta, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <TextBox DataContext="{Binding SelectedLayerParameters}" Text="{Binding Theta, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
                 <Label>L: </Label>
-                <TextBox Text="{Binding L, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <TextBox Text="{Binding SimulationL, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Width="40"/>
                 <Label>W:</Label>
-                <TextBox IsEnabled="False" Text="{Binding W, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <TextBox IsEnabled="False" Text="{Binding SimulationW, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Width="40"/>
                 <Label>H: </Label>
-                <TextBox Text="{Binding H, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <TextBox Text="{Binding SimulationH, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Width="40"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <Label>Repetitions:</Label>
-                <TextBox Text="{Binding Repetitions, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
+                <TextBox DataContext="{Binding SelectedLayerParameters}" Text="{Binding Repetitions, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
                 <Label>Phi:</Label>
-                <TextBox Text="{Binding Phi, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <TextBox DataContext="{Binding SelectedLayerParameters}" Text="{Binding Phi, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
                 <Label>Turns:</Label>
-                <TextBox Text="{Binding Turns, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <TextBox DataContext="{Binding SelectedLayerParameters}" Text="{Binding Turns, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}" Width="40"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <Label>Diffusion steps:</Label>
-                <TextBox Text="{Binding DiffusionSteps, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <TextBox DataContext="{Binding SelectedLayerParameters}" Text="{Binding DiffusionSteps, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
                 <Label>Species:</Label>
-                <TextBox IsEnabled="False" Text="{Binding Species[0], UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <TextBox IsEnabled="False" DataContext="{Binding SelectedLayerParameters}" Text="{Binding Species[0], UpdateSourceTrigger=PropertyChanged}" Width="40"/>
                 <Label>Weights:</Label>
-                <TextBox IsEnabled="False" Text="{Binding Weights[0][0], UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <TextBox IsEnabled="False" DataContext="{Binding SelectedLayerParameters}" Text="{Binding Weights[0][0], UpdateSourceTrigger=PropertyChanged}" Width="40"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <Label>Spread: (</Label>
-                <TextBox Text="{Binding AngularDeviation[0], UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <TextBox DataContext="{Binding SelectedLayerParameters}" Text="{Binding AngularDeviation[0], UpdateSourceTrigger=PropertyChanged}" Width="40"/>
                 <Label>,</Label>
-                <TextBox Text="{Binding AngularDeviation[1], UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                <TextBox DataContext="{Binding SelectedLayerParameters}" Text="{Binding AngularDeviation[1], UpdateSourceTrigger=PropertyChanged}" Width="40"/>
                 <Label>)</Label>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <CheckBox Name="PhiSweepCheckBox">PhiSweep</CheckBox>
                 <Label>Periods:</Label>
-                <TextBox IsEnabled="{Binding ElementName=PhiSweepCheckBox, Path=IsChecked}" Text="{Binding PhiSweepPeriods, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBox IsEnabled="{Binding ElementName=PhiSweepCheckBox, Path=IsChecked}" DataContext="{Binding SelectedLayerParameters}" Text="{Binding PhiSweepPeriods, UpdateSourceTrigger=PropertyChanged}"/>
                 <Label>Angle from center:</Label>
-                <TextBox IsEnabled="{Binding ElementName=PhiSweepCheckBox, Path=IsChecked}" Text="{Binding PhiDegree, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBox IsEnabled="{Binding ElementName=PhiSweepCheckBox, Path=IsChecked}" DataContext="{Binding SelectedLayerParameters}" Text="{Binding PhiDegree, UpdateSourceTrigger=PropertyChanged}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <CheckBox Name="ThetaSweepCheckBox">Theta sweep</CheckBox>
                 <Label>End theta (deg):</Label>
-                <TextBox IsEnabled="{Binding ElementName=ThetaSweepCheckBox, Path=IsChecked}" Text="{Binding ThetaEnd, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBox IsEnabled="{Binding ElementName=ThetaSweepCheckBox, Path=IsChecked}" DataContext="{Binding SelectedLayerParameters}" Text="{Binding ThetaEnd, UpdateSourceTrigger=PropertyChanged}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <Label>Stepper resolution: </Label>
-                <TextBox Text="{Binding StepperResolution, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBox DataContext="{Binding SelectedLayerParameters}" Text="{Binding StepperResolution, UpdateSourceTrigger=PropertyChanged}"/>
                 <Label>Acceleration (phi): </Label>
-                <ComboBox Width="60" IsEnabled="False">
-                    <ComboBoxItem IsSelected="True">None</ComboBoxItem>
-                    <ComboBoxItem>Accelerate</ComboBoxItem>
-                    <ComboBoxItem>Decelerate</ComboBoxItem>
-                    <ComboBoxItem>Bicone</ComboBoxItem>
-                    <ComboBoxItem>Hourglass</ComboBoxItem>
-                </ComboBox>
+                <ComboBox Width="60" x:Name="Accelerations" SelectedItem="{Binding SelectedAcceleration, Mode=TwoWay}"></ComboBox>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <Label>Seed: </Label>
-                <TextBox Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
+                <TextBox DataContext="{Binding SelectedLayerParameters}" Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
                 <Label>Collision method: </Label>
-                <ComboBox Width="60" IsEnabled="False">
-                    <ComboBoxItem>NN0</ComboBoxItem>
-                    <ComboBoxItem IsSelected="True">NN1</ComboBoxItem>
-                    <ComboBoxItem>NN2</ComboBoxItem>
-                    <ComboBoxItem>NN3</ComboBoxItem>
-                </ComboBox>
+                <ComboBox Width="60" x:Name="Collisions" SelectedItem="{Binding SelectedCollision, Mode=TwoWay}"></ComboBox>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <Label>Material system: </Label>
-                <TextBox Text="{Binding MaterialSystem, UpdateSourceTrigger=PropertyChanged}" Width="220"></TextBox>
+                <TextBox DataContext="{Binding SelectedLayerParameters}" Text="{Binding MaterialSystem, UpdateSourceTrigger=PropertyChanged}" Width="220"></TextBox>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <Label>Directory:</Label>
-                <TextBox Text="{Binding DestinationDirectory, UpdateSourceTrigger=PropertyChanged}" Width="220"></TextBox>
+                <TextBox DataContext="{Binding SelectedLayerParameters}" Text="{Binding DestinationDirectory, UpdateSourceTrigger=PropertyChanged}" Width="220"></TextBox>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center">Estimated RAM usage (MiB): </TextBlock>
+                <TextBlock x:Name="EstimatedMemoryUsage" VerticalAlignment="Center" Margin="5,0,0,0"></TextBlock>
             </StackPanel>
         </StackPanel>
     </Grid>

@@ -31,7 +31,7 @@ namespace BDSS
             ThetaEnd = Theta;
             StepperResolution = 0;
             MaterialSystem = "Si";
-            AccelerationPattern = (Acceleration)1;
+            AccelerationPattern = (Acceleration)0;
             CollisionMethod = (Collision)1;
             DestinationDirectory = "structures/";
         }
@@ -79,7 +79,16 @@ namespace BDSS
                 NotifyOfPropertyChange(() => Phi);
             }
         }
-        public float Turns { get; set; }
+        private float _turns;
+        public float Turns
+        {
+            get => _turns;
+            set
+            {
+                _turns = value;
+                NotifyOfPropertyChange(() => Turns);
+            }
+        }
         public uint Seed { get; set; }
         public UInt16 DiffusionSteps { get; set; }
         public List<byte> Species { get; set; }
